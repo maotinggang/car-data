@@ -1,0 +1,7 @@
+{
+  "host": "localhost",
+  "user": "root",
+  "password": "microgram",
+  "connectionLimit": 10,
+  "database": "car_data"
+}

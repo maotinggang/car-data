@@ -1,0 +1,20 @@
+{
+  "path": {
+    "enable": false,
+    "absolute": "./"
+  },
+  "log": {
+    "leval": 2,
+    "code": true,
+    "call": true,
+    "info": true,
+    "print": true
+  },
+  "mariadb": {
+    "host": "localhost",
+    "user": "microgram",
+    "password": "microgram",
+    "connectionLimit": 10,
+    "database": "car_data"
+  }
+}
