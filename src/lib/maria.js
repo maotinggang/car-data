@@ -25,4 +25,34 @@ const asyncSelectAll = async data => {
   }
 }
 
-export { asyncSelectAll }
+/**
+ * @description 根据表名查询所有数据
+ * @param {Object} data
+ * @returns {Array}
+ */
+const asyncSelectCar = async data => {
+  let conn
+  try {
+    conn = await pool.getConnection()
+    let sql = ''
+    if (data.datetime) {
+      sql = `SELECT * FROM fengjie_1_3 WHERE id='${data.id}' AND time > '${
+        data.datetime.start
+      }' AND time < '${data.datetime.end}'`
+    } else {
+      sql = `SELECT * FROM fengjie_1_3 WHERE id='${data.id}'`
+    }
+    const res = await conn.query(sql)
+    return res
+  } catch (err) {
+    console.log({
+      code: 'maria.select',
+      call: 'maria.asyncSelectAll',
+      info: err
+    })
+  } finally {
+    if (conn) conn.end()
+  }
+}
+
+export { asyncSelectAll, asyncSelectCar }

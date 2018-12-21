@@ -26,10 +26,7 @@ const readConfig = type => {
       })
       break
   }
-  let ret = readFileSync(
-    path.resolve(__dirname, '../../static/config/', filename),
-    'json'
-  )
+  let ret = readFileSync(path.resolve(__static, 'config', filename), 'json')
   if (!ret.err) userConfig = ret.data
   return userConfig
 }

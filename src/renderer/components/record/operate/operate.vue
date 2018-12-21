@@ -36,7 +36,7 @@
         type="datetime"
         placeholder="选择查询结束时间"
         clearable
-        v-model="formItem.datetime.start"
+        v-model="formItem.datetime.end"
       ></DatePicker>
     </FormItem>
 
@@ -62,6 +62,8 @@
         show-stops
         show-input
         input-size="small"
+        @on-change="sliderChange"
+        @on-input="sliderChange"
         :min=1
         :max=10
       ></Slider>
@@ -71,44 +73,102 @@
         type="primary"
         size="small"
         ghost
+        @click="select"
       >查询</Button>
       <Button
         style="margin-left: 10px"
         type="error"
         size="small"
         ghost
+        @click="clear"
       >清除</Button>
       <Button
         style="margin-left: 40px"
         type="success"
         size="small"
         ghost
+        @click="play"
       >播放</Button>
       <Button
         style="margin-left: 10px"
         type="warning"
         size="small"
         ghost
+        @click="pause"
       >暂停</Button>
     </div>
   </Form>
 </template>
 <script>
+import { asyncSelectCar } from "../../../../lib/maria";
+import { EventBus } from "../../../../lib/event";
+import { mapActions } from "vuex";
+import dateTime from "date-time";
 export default {
   data() {
     return {
       formItem: {
-        input: "",
-        select: "",
-        radio: "male",
-        checkbox: [],
-        switch: true,
+        id: "",
         datetime: { start: "", end: "" },
-        time: "",
-        slider: 1,
-        textarea: ""
+        select: "",
+        checkbox: [],
+        slider: 1
       }
     };
+  },
+  created() {
+    EventBus.$on("device-selected", value => {
+      this.formItem.id = value;
+    });
+  },
+  methods: {
+    ...mapActions("record", ["selectList", "selectClear", "playSpeed"]),
+    select() {
+      if (!this.formItem.id) {
+        this.$Message.error({
+          content: "请选择查询设备",
+          duration: 3,
+          closable: true
+        });
+        return;
+      }
+      let selectData = "";
+      if (this.formItem.datetime.start && this.formItem.datetime.end) {
+        selectData = {
+          id: this.formItem.id,
+          datetime: {
+            start: dateTime({ date: new Date(this.formItem.datetime.start) }),
+            end: dateTime({ date: new Date(this.formItem.datetime.end) })
+          }
+        };
+      } else {
+        this.$Message.error({
+          content: "请选择查询时间，数据量较大，尽量选择较短时间段",
+          duration: 3,
+          closable: true
+        });
+        return;
+      }
+      asyncSelectCar(selectData)
+        .then(result => {
+          this.selectList(result);
+        })
+        .catch(err => {
+          console.log(err);
+        });
+    },
+    clear() {
+      this.selectClear();
+    },
+    play() {
+      EventBus.$emit("record-play");
+    },
+    pause() {
+      EventBus.$emit("record-pause");
+    },
+    sliderChange() {
+      this.playSpeed(this.formItem.slider);
+    }
   }
 };
 </script>

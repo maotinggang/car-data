@@ -3,6 +3,7 @@
     <Sider
       :style="{position: 'fixed', height: '100vh', left: 0, overflow: 'auto'}"
       class="layout-sider"
+      :width=160
     >
       <Card
         :padding=0
@@ -18,7 +19,7 @@
     <Sider
       :style="{position: 'fixed', height: '100vh', right: 0, overflow: 'auto'}"
       class="layout-sider"
-      :width=300
+      :width=330
     >
       <Card
         :padding=0
@@ -31,7 +32,7 @@
         <record></record>
       </Card>
     </Sider>
-    <Layout :style="{marginLeft: '200px',marginRight: '300px'}">
+    <Layout :style="{marginLeft: '160px',marginRight: '330px'}">
       <Content :style="{padding: '2px'}">
         <Row>
           <Card :padding=5>

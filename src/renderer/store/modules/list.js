@@ -1,16 +1,14 @@
 import collection from 'lodash/collection'
 const state = {
   list: [],
-  selected: {},
-  checked: []
+  selected: '',
+  checked: [],
+  selectList: []
 }
 
 const mutations = {
   LIST_INIT(state, devices) {
     state.list = devices
-  },
-  listAdd(state, device) {
-    state.list.push(device)
   },
   listDelete(state, id) {
     state.list = collection.reject(state.list, { id: id })
@@ -19,21 +17,13 @@ const mutations = {
     state.list = collection.reject(state.list, { id: device.id })
     state.list.push(device)
   },
-  deviceSelected(state, device) {
-    state.selected = collection.find(state.list, { name: device[0].title })
+  DEVICE_SELECTED(state, device) {
+    state.selected = ''
+    state.selected = device
   },
-  deviceChecked(state, devices) {
+  DEVICE_CHECKED(state, devices) {
     state.checked = []
-    if (devices[0]) {
-      devices = collection.reject(devices, { nodeKey: 0 })
-      devices.forEach(element => {
-        state.checked.push(
-          collection.find(state.list, {
-            name: element.title
-          })
-        )
-      })
-    }
+    state.checked = devices
   }
 }
 
@@ -41,18 +31,16 @@ const actions = {
   listInit({ commit }, devices) {
     commit('LIST_INIT', devices)
   },
-  getAllList({ state }) {
-    return state.list
+  deviceSelected({ commit }, device) {
+    commit('DEVICE_SELECTED', device)
   },
-  deviceSelected(context, device) {
-    context.commit('deviceSelected', device)
-  },
-  deviceChecked(context, devices) {
-    context.commit('deviceChecked', devices)
+  deviceChecked({ commit }, devices) {
+    commit('DEVICE_CHECKED', devices)
   }
 }
 
 export default {
+  namespaced: true,
   state,
   mutations,
   actions

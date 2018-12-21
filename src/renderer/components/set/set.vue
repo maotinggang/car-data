@@ -13,6 +13,10 @@
       @input="zone"
       placeholder="加载车辆越界区域文件"
     >越界区域</load-file>
+    <load-file
+      @input="zone"
+      placeholder="分析多个车辆时统计结果保存文件"
+    >统计报告</load-file>
     <Row>
       <Col
         :xs="10"
@@ -22,7 +26,7 @@
       >
       <Input
         v-model="exspeed"
-        placeholder="输入超速值，多个值用逗号分开"
+        placeholder="输入超速值"
         clearable
       >
       <span slot="prepend">超速限制</span>

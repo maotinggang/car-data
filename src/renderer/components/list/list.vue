@@ -5,7 +5,7 @@
       :data="data"
       show-checkbox
       class="tree"
-      @on-select-change="selected"
+      @on-select-change="selectedOne"
       @on-check-change="checked"
     ></Tree>
     <Spin
@@ -16,8 +16,11 @@
   </div>
 </template>
 <script>
-// import { mapState } from "vuex";
+import { mapState, mapActions } from "vuex";
 import { asyncSelectAll } from "../../../lib/maria";
+import array from "lodash/array";
+import collection from "lodash/collection";
+import { EventBus } from "../../../lib/event";
 export default {
   data() {
     return {
@@ -26,33 +29,47 @@ export default {
   },
   created() {
     asyncSelectAll("car_info").then(data => {
-      // store.dispatch("listInit", data);
+      this.listInit(data);
       this.loading = false;
     });
   },
   methods: {
-    selected(device) {
+    ...mapActions("list", ["listInit", "deviceChecked", "deviceSelected"]),
+    selectedOne(device) {
       if (device[0]) {
+        this.deviceSelected(device[0].title);
       }
+      EventBus.$emit("device-selected", this.selected);
     },
-    checked(devices) {}
+    checked(devices) {
+      let temp = [];
+      collection.forEach(devices, value => {
+        temp.push(value.title);
+      });
+      this.deviceChecked(temp);
+    }
   },
   computed: {
+    ...mapState("list", ["list", "selected"]),
     data() {
-      // let devices = this.list;
-      // console.log(JSON.stringify(devices));
-
+      let devices = this.list;
+      let companys = array.uniqBy(devices, "company");
       let children = [];
-      // devices.foreach(element => {
-      //   children.push({ title: element.name });
-      // });
-      return [
-        {
-          title: "",
-          expand: true,
-          children: children
-        }
-      ];
+      for (let index = 0; index < companys.length; index++) {
+        const company = companys[index].company;
+        let temp = [];
+        collection.forEach(devices, value => {
+          if (value.company === company) {
+            temp.push({ title: value.id });
+          }
+        });
+        children.push({
+          title: company,
+          expand: false,
+          children: temp
+        });
+      }
+      return children;
     }
   }
 };

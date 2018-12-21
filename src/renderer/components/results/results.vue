@@ -26,11 +26,11 @@ export default {
       data: [
         {
           param: "超速次数",
-          results: "2016-10-03"
+          results: "10"
         },
         {
           param: "越界次数",
-          results: "2016-10-01"
+          results: "0"
         }
       ]
     };

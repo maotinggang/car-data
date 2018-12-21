@@ -53,7 +53,9 @@
     }
   },
   "dependencies": {
+    "date-time": "^2.1.0",
     "iview": "^3.2.0",
+    "lodash": "^4.17.11",
     "mariadb": "^2.0.2-rc",
     "vue": "^2.5.16",
     "vue-baidu-map": "^0.21.16",
