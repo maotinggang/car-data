@@ -16,9 +16,28 @@
         <list></list>
       </Card>
     </Sider>
+    <Layout :style="{marginLeft: '160px',marginRight: '330px'}">
+      <Content>
+        <Row>
+          <Col>
+          <Card :padding=3>
+            <p
+              slot="title"
+              :style="{textAlign: 'center'}"
+            >统计分析</p>
+            <results></results>
+          </Card>
+          </Col>
+        </Row>
+        <Row>
+          <Card :padding=3>
+            <baidu></baidu>
+          </Card>
+        </Row>
+      </Content>
+    </Layout>
     <Sider
-      :style="{position: 'fixed', height: '100vh', right: 0, overflow: 'auto'}"
-      class="layout-sider"
+      class="layout-sider-record"
       :width=330
     >
       <Card
@@ -32,50 +51,18 @@
         <record></record>
       </Card>
     </Sider>
-    <Layout :style="{marginLeft: '160px',marginRight: '330px'}">
-      <Content :style="{padding: '2px'}">
-        <Row>
-          <Card :padding=5>
-            <baidu></baidu>
-          </Card>
-        </Row>
-        <Row>
-          <Col span="12">
-          <Card :padding=5>
-            <p
-              slot="title"
-              :style="{textAlign: 'center'}"
-            >参数配置</p>
-            <set></set>
-          </Card>
-          </Col>
-          <Col span="12">
-          <Card :padding=5>
-            <p
-              slot="title"
-              :style="{textAlign: 'center'}"
-            >结果展示</p>
-            <results></results>
-          </Card>
-          </Col>
-        </Row>
-      </Content>
-    </Layout>
-
   </div>
 </template>
 <script>
 import Baidu from "@/components/map";
 import List from "@/components/list";
 import Record from "@/components/record";
-import Set from "@/components/set";
 import Results from "@/components/results";
 export default {
   components: {
     Baidu,
     List,
     Record,
-    Set,
     Results
   }
 };
@@ -90,6 +77,13 @@ export default {
 }
 .layout-sider {
   background: white;
+}
+.layout-sider-record {
+  background: white;
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
 }
 .layout-card {
   padding: 0px;

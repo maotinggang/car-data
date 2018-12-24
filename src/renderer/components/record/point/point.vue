@@ -9,29 +9,16 @@
   ></Table>
 </template>
 <script>
-import expandRow from "./expand.vue";
 import { EventBus } from "../../../../lib/event";
 import { mapState } from "vuex";
 export default {
-  components: { expandRow },
   data() {
     return {
       columns: [
         {
-          type: "expand",
-          width: 20,
-          render: (h, params) => {
-            return h(expandRow, {
-              props: {
-                row: params.row
-              }
-            });
-          }
-        },
-        {
           title: "序号",
           key: "no",
-          width: 70,
+          width: 90,
           align: "center"
         },
         {

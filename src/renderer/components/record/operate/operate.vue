@@ -41,14 +41,30 @@
     </FormItem>
 
     <FormItem
-      label="区域显示"
+      label="地图显示"
       style="margin:2px 2px;"
     >
       <CheckboxGroup
-        v-model="formItem.checkbox"
+        v-model="formItem.zone"
         size="small"
+        @on-change="onDisplay"
       >
+        <Checkbox label="轨迹"></Checkbox>
         <Checkbox label="限速"></Checkbox>
+        <Checkbox label="边界"></Checkbox>
+      </CheckboxGroup>
+    </FormItem>
+    <FormItem
+      label="数据筛选"
+      style="margin:2px 2px;"
+    >
+      <CheckboxGroup
+        v-model="formItem.filter"
+        size="small"
+        @on-change="onFilter"
+      >
+        <Checkbox label="正常"></Checkbox>
+        <Checkbox label="超速"></Checkbox>
         <Checkbox label="越界"></Checkbox>
       </CheckboxGroup>
     </FormItem>
@@ -83,6 +99,13 @@
         @click="clear"
       >清除</Button>
       <Button
+        style="margin-left: 10px"
+        type="success"
+        size="small"
+        ghost
+        @click="analyze"
+      >分析</Button>
+      <Button
         style="margin-left: 40px"
         type="success"
         size="small"
@@ -103,15 +126,20 @@
 import { asyncSelectCar } from "../../../../lib/maria";
 import { EventBus } from "../../../../lib/event";
 import { mapActions } from "vuex";
+// import collection from "lodash/collection";
 import dateTime from "date-time";
 export default {
   data() {
     return {
       formItem: {
-        id: "",
-        datetime: { start: "", end: "" },
+        id: "渝A0G096",
+        datetime: {
+          start: "2018-01-01T09:00:00Z",
+          end: "2018-01-01T10:00:00Z"
+        },
         select: "",
-        checkbox: [],
+        zone: [],
+        filter: ["正常", "超速", "越界"],
         slider: 1
       }
     };
@@ -122,16 +150,26 @@ export default {
     });
   },
   methods: {
-    ...mapActions("record", ["selectList", "selectClear", "playSpeed"]),
-    select() {
+    ...mapActions("record", [
+      "selectList",
+      "selectClear",
+      "playSpeed",
+      "display",
+      "filter"
+    ]),
+    isSelectCar() {
       if (!this.formItem.id) {
         this.$Message.error({
-          content: "请选择查询设备",
+          content: "请选择车辆",
           duration: 3,
           closable: true
         });
-        return;
+        return false;
       }
+      return true;
+    },
+    select() {
+      if (!this.isSelectCar()) return;
       let selectData = "";
       if (this.formItem.datetime.start && this.formItem.datetime.end) {
         selectData = {
@@ -151,14 +189,22 @@ export default {
       }
       asyncSelectCar(selectData)
         .then(result => {
-          this.selectList(result);
+          if (result[0]) {
+            this.selectList(result);
+            EventBus.$emit("record-select-done");
+          }
         })
         .catch(err => {
-          console.log(err);
+          this.$Message.error({
+            content: "查询数据错误" + err,
+            duration: 3,
+            closable: true
+          });
         });
     },
     clear() {
       this.selectClear();
+      EventBus.$emit("record-clear");
     },
     play() {
       EventBus.$emit("record-play");
@@ -166,8 +212,25 @@ export default {
     pause() {
       EventBus.$emit("record-pause");
     },
-    sliderChange() {
-      this.playSpeed(this.formItem.slider);
+    analyze() {
+      if (!this.isSelectCar()) return;
+      let id = "渝A0G096";
+      const msg = this.$Message.loading({
+        content: "分析" + id + "数据中...",
+        duration: 0
+      });
+      setTimeout(msg, 3000);
+    },
+    sliderChange(value) {
+      this.playSpeed(value);
+    },
+    onDisplay(value) {
+      if (!this.isSelectCar()) return;
+      this.display(value);
+    },
+    onFilter(value) {
+      if (!this.isSelectCar()) return;
+      this.filter(value);
     }
   }
 };
