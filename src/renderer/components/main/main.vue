@@ -20,19 +20,13 @@
       <Content>
         <Row>
           <Col>
-          <Card :padding=3>
-            <p
-              slot="title"
-              :style="{textAlign: 'center'}"
-            >统计分析</p>
-            <results></results>
-          </Card>
+          <results></results>
           </Col>
         </Row>
         <Row>
-          <Card :padding=3>
-            <baidu></baidu>
-          </Card>
+          <Col>
+          <baidu2></baidu2>
+          </Col>
         </Row>
       </Content>
     </Layout>
@@ -54,13 +48,13 @@
   </div>
 </template>
 <script>
-import Baidu from "@/components/map";
+import { Baidu2 } from "@/components/map";
 import List from "@/components/list";
 import Record from "@/components/record";
 import Results from "@/components/results";
 export default {
   components: {
-    Baidu,
+    Baidu2,
     List,
     Record,
     Results
@@ -81,7 +75,7 @@ export default {
 .layout-sider-record {
   background: white;
   position: fixed;
-  top: 0;
+  top: 2px;
   right: 0;
   bottom: 0;
 }

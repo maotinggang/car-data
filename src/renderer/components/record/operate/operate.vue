@@ -16,6 +16,15 @@
       ></Input>
     </FormItem>
     <FormItem
+      label="分析文件"
+      style="margin:2px 2px;"
+    >
+      <load-file
+        @input="formItem.file=$event"
+        placeholder="分析结果保存到文件"
+      >分析文件</load-file>
+    </FormItem>
+    <FormItem
       label="开始时间"
       style="margin:2px 2px;"
     >
@@ -39,34 +48,33 @@
         v-model="formItem.datetime.end"
       ></DatePicker>
     </FormItem>
-
     <FormItem
       label="地图显示"
       style="margin:2px 2px;"
     >
-      <CheckboxGroup
-        v-model="formItem.zone"
-        size="small"
-        @on-change="onDisplay"
-      >
-        <Checkbox label="轨迹"></Checkbox>
-        <Checkbox label="限速"></Checkbox>
-        <Checkbox label="边界"></Checkbox>
-      </CheckboxGroup>
+      <Checkbox
+        @on-change="onTrack"
+        :value="true"
+      >轨迹</Checkbox>
+      <Checkbox @on-change="onSpeed">限速</Checkbox>
+      <Checkbox @on-change="onBorder">边界</Checkbox>
     </FormItem>
     <FormItem
       label="数据筛选"
       style="margin:2px 2px;"
     >
-      <CheckboxGroup
-        v-model="formItem.filter"
-        size="small"
-        @on-change="onFilter"
-      >
-        <Checkbox label="正常"></Checkbox>
-        <Checkbox label="超速"></Checkbox>
-        <Checkbox label="越界"></Checkbox>
-      </CheckboxGroup>
+      <Checkbox
+        @on-change="onNormal"
+        :value="true"
+      >正常</Checkbox>
+      <Checkbox
+        @on-change="onOverSpeed"
+        :value="true"
+      >超速</Checkbox>
+      <Checkbox
+        @on-change="onOverBorder"
+        :value="true"
+      >越界</Checkbox>
     </FormItem>
     <FormItem
       label="播放速度"
@@ -89,44 +97,52 @@
         type="primary"
         size="small"
         ghost
-        @click="select"
+        @click="onSelect"
       >查询</Button>
       <Button
-        style="margin-left: 10px"
+        style="margin-left: 5px"
         type="error"
         size="small"
         ghost
-        @click="clear"
+        @click="onClear"
       >清除</Button>
       <Button
-        style="margin-left: 10px"
+        style="margin-left: 5px"
         type="success"
         size="small"
         ghost
-        @click="analyze"
+        @click="onAnalyze"
       >分析</Button>
       <Button
-        style="margin-left: 40px"
+        style="margin-left: 30px"
         type="success"
         size="small"
         ghost
-        @click="play"
+        @click="onPlay"
       >播放</Button>
       <Button
-        style="margin-left: 10px"
+        style="margin-left: 5px"
         type="warning"
         size="small"
         ghost
-        @click="pause"
+        @click="onPause"
       >暂停</Button>
+      <Button
+        style="margin-left: 5px"
+        type="warning"
+        size="small"
+        ghost
+        @click="onStop"
+      >刷新</Button>
     </div>
   </Form>
 </template>
 <script>
-import { asyncSelectCar } from "../../../../lib/maria";
+import { asyncSelectCar, asyncSelectZone } from "../../../../lib/maria";
 import { EventBus } from "../../../../lib/event";
+import LoadFile from "../file";
 import { mapActions } from "vuex";
-// import collection from "lodash/collection";
+import collection from "lodash/collection";
 import dateTime from "date-time";
 export default {
   data() {
@@ -138,11 +154,15 @@ export default {
           end: "2018-01-01T10:00:00Z"
         },
         select: "",
-        zone: [],
+        display: ["轨迹"],
         filter: ["正常", "超速", "越界"],
-        slider: 1
+        slider: 1,
+        file: ""
       }
     };
+  },
+  components: {
+    LoadFile
   },
   created() {
     EventBus.$on("device-selected", value => {
@@ -151,11 +171,15 @@ export default {
   },
   methods: {
     ...mapActions("record", [
-      "selectList",
+      "selectListAction",
       "selectClear",
       "playSpeed",
-      "display",
-      "filter"
+      "displayTrack",
+      "displaySpeed",
+      "displayBorder",
+      "filterNormal",
+      "filterOverSpeed",
+      "filterOverBorder"
     ]),
     isSelectCar() {
       if (!this.formItem.id) {
@@ -168,7 +192,7 @@ export default {
       }
       return true;
     },
-    select() {
+    onSelect() {
       if (!this.isSelectCar()) return;
       let selectData = "";
       if (this.formItem.datetime.start && this.formItem.datetime.end) {
@@ -189,8 +213,9 @@ export default {
       }
       asyncSelectCar(selectData)
         .then(result => {
+          // FIXME 点击一次数据库查询无法返回结果,可能是数据库连接后为关闭造成
           if (result[0]) {
-            this.selectList(result);
+            this.selectListAction(result);
             EventBus.$emit("record-select-done");
           }
         })
@@ -202,18 +227,32 @@ export default {
           });
         });
     },
-    clear() {
+    onClear() {
       this.selectClear();
       EventBus.$emit("record-clear");
     },
-    play() {
+    onPlay() {
       EventBus.$emit("record-play");
     },
-    pause() {
+    onPause() {
       EventBus.$emit("record-pause");
     },
-    analyze() {
-      if (!this.isSelectCar()) return;
+    onStop() {
+      EventBus.$emit("record-stop");
+    },
+    isSelectFile() {
+      if (!this.formItem.file) {
+        this.$Message.error({
+          content: "请选择分析结果存储文件",
+          duration: 3,
+          closable: true
+        });
+        return false;
+      }
+      return true;
+    },
+    onAnalyze() {
+      if (!this.isSelectCar() || !this.isSelectFile()) return;
       let id = "渝A0G096";
       const msg = this.$Message.loading({
         content: "分析" + id + "数据中...",
@@ -224,13 +263,73 @@ export default {
     sliderChange(value) {
       this.playSpeed(value);
     },
-    onDisplay(value) {
+    onTrack(value) {
       if (!this.isSelectCar()) return;
-      this.display(value);
+      this.displayTrack(value);
     },
-    onFilter(value) {
+    onSpeed(value) {
       if (!this.isSelectCar()) return;
-      this.filter(value);
+      asyncSelectZone({ id: this.formItem.id, type: "speed" })
+        .then(result => {
+          let speed = [];
+          let data = result[0];
+          if (data) {
+            collection.forEach(result, value => {
+              let one = { id: data.id, speed: data.speed, polygonPath: [] };
+              data.lng = data.lng.split(",");
+              data.lat = data.lat.split(",");
+              for (let index = 0; index < data.lng.length; index++) {
+                one.polygonPath.push({
+                  lng: data.lng[index],
+                  lat: data.lat[index]
+                });
+              }
+              speed.push(one);
+            });
+          }
+          this.displaySpeed(speed);
+        })
+        .catch(err => {
+          console.log(JSON.stringify(err));
+        });
+    },
+    onBorder(value) {
+      if (!this.isSelectCar()) return;
+      asyncSelectZone({ id: this.formItem.id, type: "border" })
+        .then(result => {
+          let border = [];
+          let data = result[0];
+          if (data) {
+            collection.forEach(result, value => {
+              let one = { id: data.id, polygonPath: [] };
+              data.lng = data.lng.split(",");
+              data.lat = data.lat.split(",");
+              for (let index = 0; index < data.lng.length; index++) {
+                one.polygonPath.push({
+                  lng: data.lng[index],
+                  lat: data.lat[index]
+                });
+              }
+              border.push(one);
+            });
+          }
+          this.displayBorder(border);
+        })
+        .catch(err => {
+          console.log(JSON.stringify(err));
+        });
+    },
+    onNormal(value) {
+      if (!this.isSelectCar()) return;
+      this.displayBorder(value);
+    },
+    onOverSpeed(value) {
+      if (!this.isSelectCar()) return;
+      this.displayBorder(value);
+    },
+    onOverBorder(value) {
+      if (!this.isSelectCar()) return;
+      this.displayBorder(value);
     }
   }
 };

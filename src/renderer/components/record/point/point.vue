@@ -1,12 +1,15 @@
 
 <template>
-  <Table
-    :columns="columns"
-    :data="selectList"
-    size="small"
-    highlight-row
-    @on-row-dblclick="deviceClick"
-  ></Table>
+  <div class="table">
+    <Table
+      :columns="columns"
+      :height="tableheight"
+      :data="selectList"
+      size="small"
+      highlight-row
+      @on-row-dblclick="deviceClick"
+    ></Table>
+  </div>
 </template>
 <script>
 import { EventBus } from "../../../../lib/event";
@@ -32,7 +35,16 @@ export default {
           width: 60,
           align: "center"
         }
-      ]
+      ],
+      tableheight: 0
+    };
+  },
+  created() {
+    window.onresize = () => {
+      this.tableheight = window.innerHeight - 330;
+    };
+    window.onload = () => {
+      this.tableheight = window.innerHeight - 330;
     };
   },
   computed: {
@@ -47,10 +59,7 @@ export default {
 </script>
 
 <style>
-.ivu-table .table-cell {
-  background-color: aqua;
-}
-.ivu-table th.table-column {
-  background-color: aqua;
+.table {
+  overflow: auto;
 }
 </style>

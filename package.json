@@ -19,8 +19,8 @@
     "postinstall": "npm run lint:fix"
   },
   "build": {
-    "productName": "car-data",
-    "appId": "com.sino.car-data",
+    "productName": "车辆数据分析",
+    "appId": "com.sino.mg.car-data",
     "directories": {
       "output": "build"
     },

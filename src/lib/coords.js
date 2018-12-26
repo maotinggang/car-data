@@ -1,3 +1,4 @@
+import math from 'lodash/math'
 const pi = 3.14159265358979324
 const a = 6378245.0
 const ee = 0.00669342162296594323
@@ -18,8 +19,8 @@ function gcj2bd(lat, lon) {
   let bdLon = z * Math.cos(theta) + 0.0065
   let bdLat = z * Math.sin(theta) + 0.006
   let result = []
-  result.push(bdLat)
-  result.push(bdLon)
+  result.push(math.floor(bdLat, 5))
+  result.push(math.floor(bdLon, 5))
   return result
 }
 
