@@ -269,25 +269,37 @@ export default {
     },
     onSpeed(value) {
       if (!this.isSelectCar()) return;
-      asyncSelectZone({ id: this.formItem.id, type: "speed" })
+      if (!value) {
+        this.displaySpeed([]);
+        return;
+      }
+      asyncSelectZone({ id: this.formItem.id, type: "限速" })
         .then(result => {
-          let speed = [];
-          let data = result[0];
-          if (data) {
+          if (result[0]) {
+            let speed = [];
+            let colorIndex = 0;
+            let color = ["red", "blue", "yellow", "violet", "salmon", "sienna"];
             collection.forEach(result, value => {
-              let one = { id: data.id, speed: data.speed, polygonPath: [] };
-              data.lng = data.lng.split(",");
-              data.lat = data.lat.split(",");
-              for (let index = 0; index < data.lng.length; index++) {
+              let one = {
+                id: value.id,
+                speed: value.speed,
+                type: value.type,
+                name: value.name,
+                color: color[colorIndex++],
+                polygonPath: []
+              };
+              let lng = value.lng.split(",");
+              let lat = value.lat.split(",");
+              for (let index = 0; index < lng.length; index++) {
                 one.polygonPath.push({
-                  lng: data.lng[index],
-                  lat: data.lat[index]
+                  lng: lng[index],
+                  lat: lat[index]
                 });
               }
               speed.push(one);
             });
+            this.displaySpeed(speed);
           }
-          this.displaySpeed(speed);
         })
         .catch(err => {
           console.log(JSON.stringify(err));
@@ -295,25 +307,37 @@ export default {
     },
     onBorder(value) {
       if (!this.isSelectCar()) return;
-      asyncSelectZone({ id: this.formItem.id, type: "border" })
+      if (!value) {
+        this.displayBorder([]);
+        return;
+      }
+      asyncSelectZone({ id: this.formItem.id, type: "越线" })
         .then(result => {
-          let border = [];
-          let data = result[0];
-          if (data) {
-            collection.forEach(result, value => {
-              let one = { id: data.id, polygonPath: [] };
-              data.lng = data.lng.split(",");
-              data.lat = data.lat.split(",");
-              for (let index = 0; index < data.lng.length; index++) {
+          if (result[0]) {
+            let border = [];
+            let colorIndex = 0;
+            let color = ["blue", "red", "yellow", "violet", "salmon", "sienna"];
+            collection.forEach(result, (value, index) => {
+              let one = {
+                id: value.id,
+                name: value.name,
+                type: value.type,
+                color: color[colorIndex++],
+                polygonPath: []
+              };
+              let lng = value.lng.split(",");
+              let lat = value.lat.split(",");
+              for (let index = 0; index < lng.length; index++) {
+                // TODO 坐标转换
                 one.polygonPath.push({
-                  lng: data.lng[index],
-                  lat: data.lat[index]
+                  lng: lng[index],
+                  lat: lat[index]
                 });
               }
               border.push(one);
             });
+            this.displayBorder(border);
           }
-          this.displayBorder(border);
         })
         .catch(err => {
           console.log(JSON.stringify(err));

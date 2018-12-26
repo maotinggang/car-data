@@ -169,5 +169,6 @@ export default {
 }
 .point-span {
   font-size: 11px;
+  color: sienna;
 }
 </style>

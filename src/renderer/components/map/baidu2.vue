@@ -17,39 +17,31 @@
         :showAddressBar="true"
         :autoLocation="true"
       ></bm-geolocation>
-      <!-- 限速区域1 -->
+      <!-- 限速区域 -->
       <bm-polygon
-        v-if="displaySpeed[0]"
-        :path="displaySpeed[0].polygonPath"
-        stroke-color="blue"
+        v-for="(item, index) in displaySpeed"
+        :key="index"
+        v-if="item"
+        :path="item.polygonPath"
+        :stroke-color="item.color"
         strokeStyle="dashed"
         :stroke-opacity="0.8"
         :stroke-weight="3"
-        fillColor="red"
-        :fillOpacity="0.2"
-        :dblclick="clickPolygon"
-      />
-      <!-- 限速区域2 -->
-      <bm-polygon
-        v-if="displaySpeed[1]"
-        :path="displaySpeed[1].polygonPath"
-        stroke-color="black"
-        strokeStyle="dashed"
-        :stroke-opacity="0.8"
-        :stroke-weight="3"
-        fillColor="red"
-        :fillOpacity="0.2"
+        :fillColor="item.color"
+        :fillOpacity="0.3"
         :dblclick="clickPolygon"
       />
       <!-- 边界区域 -->
       <bm-polygon
-        v-if="displayBorder[0]"
-        :path="displayBorder[0].polygonPath"
-        stroke-color="chocolate"
+        v-for="(item, index) in displayBorder"
+        :key="index"
+        v-if="item"
+        :path="item.polygonPath"
+        :stroke-color="item.color"
         :stroke-opacity="0.8"
         :stroke-weight="3"
-        fillColor="cyan"
-        :fillOpacity="0.2"
+        :fillColor="item.color"
+        :fillOpacity="0.3"
         :dblclick="clickPolygon"
       />
       <!-- 起点 -->

@@ -63,15 +63,10 @@ async function asyncSelectCar(data) {
 async function asyncSelectZone(data) {
   let conn
   let sql = ''
-  sql = `SELECT * FROM car_info WHERE id='${data.id}'`
+  sql = `SELECT * FROM zone WHERE id='${data.id}' AND type='${data.type}'`
   try {
     conn = await pool.getConnection()
     let res = await conn.query(sql)
-    let temp = res[0]
-    if (temp) {
-      sql = `SELECT * FROM ${data.type} WHERE id='${temp.company}'`
-      res = await conn.query(sql)
-    }
     return res
   } catch (err) {
     console.log({

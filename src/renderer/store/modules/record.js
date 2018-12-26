@@ -4,8 +4,8 @@ const state = {
   selectList: [],
   playSpeed: 1000,
   displayTrack: true,
-  displaySpeed: [{ id: '', speed: '', polygonPath: [] }],
-  displayBorder: [{ id: '', polygonPath: [] }],
+  displaySpeed: [],
+  displayBorder: [],
   filterNormal: true,
   filterOverSpeed: true,
   filterOverBorder: true
