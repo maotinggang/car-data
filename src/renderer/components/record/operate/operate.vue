@@ -143,11 +143,14 @@ import { EventBus } from "../../../../lib/event";
 import LoadFile from "../file";
 import { mapActions } from "vuex";
 import collection from "lodash/collection";
+import { gcj2bd } from "../../../../lib/coords";
 import dateTime from "date-time";
+import { multiCar } from "../../../../lib/analyze";
 export default {
   data() {
     return {
       formItem: {
+        // TODO for test
         id: "渝A0G096",
         datetime: {
           start: "2018-01-01T09:00:00Z",
@@ -157,8 +160,10 @@ export default {
         display: ["轨迹"],
         filter: ["正常", "超速", "越界"],
         slider: 1,
-        file: ""
-      }
+        file:
+          "C:/Users/mg/Documents/comnav/work/部标机车辆数据分析/数据/test.txt"
+      },
+      analyzeNotice: false
     };
   },
   components: {
@@ -167,6 +172,13 @@ export default {
   created() {
     EventBus.$on("device-selected", value => {
       this.formItem.id = value;
+    });
+    EventBus.$on("analyze-notice", (desc, duration) => {
+      this.$Notice.info({
+        title: "分析车辆数据",
+        desc: desc,
+        duration: duration
+      });
     });
   },
   methods: {
@@ -192,28 +204,40 @@ export default {
       }
       return true;
     },
+    isSelectTime() {
+      if (!this.formItem.datetime.start || !this.formItem.datetime.end) {
+        this.$Message.error({
+          content: "请选择操作时间段",
+          duration: 3,
+          closable: true
+        });
+        return false;
+      }
+      return true;
+    },
     onSelect() {
       if (!this.isSelectCar()) return;
-      let selectData = "";
-      if (this.formItem.datetime.start && this.formItem.datetime.end) {
-        selectData = {
-          id: this.formItem.id,
-          datetime: {
-            start: dateTime({ date: new Date(this.formItem.datetime.start) }),
-            end: dateTime({ date: new Date(this.formItem.datetime.end) })
-          }
-        };
-      } else {
+      if (!this.isSelectTime()) return;
+      // 限制按时间24h进行查询，防止一次数据量过大
+      if (
+        this.formItem.datetime.end - this.formItem.datetime.start >
+        24 * 60 * 60 * 1000
+      ) {
         this.$Message.error({
-          content: "请选择查询时间，数据量较大，尽量选择较短时间段",
-          duration: 3,
+          content: "暂支持查询24小时数据",
           closable: true
         });
         return;
       }
+      let selectData = {
+        id: this.formItem.id,
+        datetime: {
+          start: dateTime({ date: new Date(this.formItem.datetime.start) }),
+          end: dateTime({ date: new Date(this.formItem.datetime.end) })
+        }
+      };
       asyncSelectCar(selectData)
         .then(result => {
-          // FIXME 点击一次数据库查询无法返回结果,可能是数据库连接后为关闭造成
           if (result[0]) {
             this.selectListAction(result);
             EventBus.$emit("record-select-done");
@@ -251,14 +275,31 @@ export default {
       }
       return true;
     },
+    isCheckedDevice(id) {
+      if (!id) {
+        this.$Message.error({
+          content: "请勾选待分析的车辆",
+          duration: 3,
+          closable: true
+        });
+        return false;
+      }
+      return true;
+    },
+    // 分析越界超速
     onAnalyze() {
-      if (!this.isSelectCar() || !this.isSelectFile()) return;
-      let id = "渝A0G096";
-      const msg = this.$Message.loading({
-        content: "分析" + id + "数据中...",
-        duration: 0
+      if (
+        !this.isSelectFile() ||
+        !this.isCheckedDevice(this.$store.state.list.checked[0]) ||
+        !this.isSelectTime()
+      ) {
+        return;
+      }
+      multiCar({
+        id: this.$store.state.list.checked,
+        datetime: this.formItem.datetime,
+        file: this.formItem.file
       });
-      setTimeout(msg, 3000);
     },
     sliderChange(value) {
       this.playSpeed(value);
@@ -291,9 +332,10 @@ export default {
               let lng = value.lng.split(",");
               let lat = value.lat.split(",");
               for (let index = 0; index < lng.length; index++) {
+                let coord = gcj2bd(lat[index], lng[index]);
                 one.polygonPath.push({
-                  lng: lng[index],
-                  lat: lat[index]
+                  lng: coord[1],
+                  lat: coord[0]
                 });
               }
               speed.push(one);
@@ -328,10 +370,10 @@ export default {
               let lng = value.lng.split(",");
               let lat = value.lat.split(",");
               for (let index = 0; index < lng.length; index++) {
-                // TODO 坐标转换
+                let coord = gcj2bd(lat[index], lng[index]);
                 one.polygonPath.push({
-                  lng: lng[index],
-                  lat: lat[index]
+                  lng: coord[1],
+                  lat: coord[0]
                 });
               }
               border.push(one);

@@ -33,7 +33,9 @@ export default {
   },
   data() {
     return {
-      filename: ""
+      // TODO for test
+      filename:
+        "C:/Users/mg/Documents/comnav/work/部标机车辆数据分析/数据/test.txt"
     };
   },
   methods: {

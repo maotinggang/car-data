@@ -1,5 +1,5 @@
 import collection from 'lodash/collection'
-import wgs2bd from '../../../lib/coords'
+import { wgs2bd } from '../../../lib/coords'
 const state = {
   selectList: [],
   playSpeed: 1000,

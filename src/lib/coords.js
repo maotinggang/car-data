@@ -11,7 +11,7 @@ const wgs2bd = (lat, lon) => {
   return gcj2bdR
 }
 
-function gcj2bd(lat, lon) {
+const gcj2bd = (lat, lon) => {
   let x = lon
   let y = lat
   let z = Math.sqrt(x * x + y * y) + 0.00002 * Math.sin(y * xPi)
@@ -86,4 +86,4 @@ function transformLon(lat, lon) {
   return ret
 }
 
-export default wgs2bd
+export { wgs2bd, gcj2bd }

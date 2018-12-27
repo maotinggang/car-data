@@ -34,4 +34,4 @@ const isInner = data => {
   return result
 }
 
-export default isInner
+export { isInner }

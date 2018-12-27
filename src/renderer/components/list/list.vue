@@ -5,8 +5,8 @@
       :data="data"
       show-checkbox
       class="tree"
-      @on-select-change="selectedOne"
-      @on-check-change="checked"
+      @on-select-change="onSelected"
+      @on-check-change="onChecked"
     ></Tree>
     <Spin
       size="large"
@@ -35,13 +35,13 @@ export default {
   },
   methods: {
     ...mapActions("list", ["listInit", "deviceChecked", "deviceSelected"]),
-    selectedOne(device) {
+    onSelected(device) {
       if (device[0]) {
         this.deviceSelected(device[0].title);
       }
       EventBus.$emit("device-selected", this.selected);
     },
-    checked(devices) {
+    onChecked(devices) {
       let temp = [];
       collection.forEach(devices, value => {
         temp.push(value.title);
