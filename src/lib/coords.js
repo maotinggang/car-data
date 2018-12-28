@@ -24,7 +24,7 @@ const gcj2bd = (lat, lon) => {
   return result
 }
 
-function wgs2gcj(lat, lon) {
+const wgs2gcj = (lat, lon) => {
   let dLat = transformLat(lon - 105.0, lat - 35.0)
   let dLon = transformLon(lon - 105.0, lat - 35.0)
   let radLat = (lat / 180.0) * pi
@@ -36,8 +36,8 @@ function wgs2gcj(lat, lon) {
   let mgLat = lat + dLat
   let mgLon = lon + dLon
   let result = []
-  result.push(mgLat)
-  result.push(mgLon)
+  result.push(math.floor(mgLat, 5))
+  result.push(math.floor(mgLon, 5))
   return result
 }
 
@@ -86,4 +86,4 @@ function transformLon(lat, lon) {
   return ret
 }
 
-export { wgs2bd, gcj2bd }
+export { wgs2bd, gcj2bd, wgs2gcj }

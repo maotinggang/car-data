@@ -34,7 +34,7 @@ async function asyncSelectCar(data) {
   let conn
   let sql = ''
   if (data.datetime) {
-    sql = `SELECT * FROM fengjie_1_3 WHERE id='${data.id}' AND time > '${
+    sql = `SELECT * FROM fengjie_1_3 WHERE id='${data.id}' AND time >= '${
       data.datetime.start
     }' AND time < '${data.datetime.end}'`
   } else {
@@ -83,4 +83,26 @@ async function asyncSelectZone(data) {
   }
 }
 
-export { asyncSelectAll, asyncSelectCar, asyncSelectZone }
+/**
+ * @description 存储单点分析数据
+ * @param {String} data
+ * @returns {Array}
+ */
+async function asyncSaveAnalyze(data) {
+  let conn
+  let sql =
+    'INSERT INTO `analyze` VALUES ' +
+    `('${data.id}','${data.time}','${data.now}',${data.lng},${data.lat},${
+      data.speed
+    },${data.over},${data.direction},'${data.state}',${data.stano})`
+  try {
+    conn = await pool.getConnection()
+    conn.query(sql)
+  } catch (err) {
+    console.log(JSON.stringify(err))
+  } finally {
+    if (conn) conn.destroy()
+  }
+}
+
+export { asyncSelectAll, asyncSelectCar, asyncSelectZone, asyncSaveAnalyze }

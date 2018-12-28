@@ -1,4 +1,3 @@
-// TODO 存储分析结果到文件
 import fs from 'fs'
 import dateTime from 'date-time'
 
@@ -17,15 +16,29 @@ const saveResults = data => {
   })
 }
 
+/**
+ * @description 未查询到超速和越界区域时直接存储
+ * @param {Object} data
+ */
+const saveNoAnalyze = data => {
+  let saveData = `/n-------------${data.id}-------------/n
+  未找到该车辆的限速和越界区域信息`
+  fs.appendFile(data.file, saveData, err => {
+    if (err) {
+      console.log(err)
+    }
+  })
+}
+
 const saveStart = data => {
-  let saveData = `#############分析数据开始#############
-  开始时间：${dateTime()}
-  保存文件：${data.file}
+  let saveData = `#################分析数据开始#################\r\n
+  开始时间：${data.now}\r\n
+  保存文件：${data.file}\r\n
   分析时段：${dateTime({
     date: new Date(data.datetime.start)
-  })}---${dateTime({ date: new Date(data.datetime.end) })}
-  分析设备：${data.id}
-  ##################################/n
+  })}---${dateTime({ date: new Date(data.datetime.end) })}\r\n
+  分析设备：${data.id}\r\n
+#############################################\r\n
   `
   fs.appendFile(data.file, saveData, err => {
     if (err) {
@@ -34,7 +47,10 @@ const saveStart = data => {
   })
 }
 const saveEnd = data => {
-  let saveData = ''
+  let saveData = `#############分析数据结束#############
+  结束时间：${data.now}
+  ##################################/n
+  `
   fs.appendFile(data.file, saveData, err => {
     if (err) {
       console.log(err)
@@ -49,4 +65,4 @@ const saveStartDevice = data => {
     }
   })
 }
-export { saveResults, saveStart, saveEnd, saveStartDevice }
+export { saveResults, saveStart, saveEnd, saveStartDevice, saveNoAnalyze }

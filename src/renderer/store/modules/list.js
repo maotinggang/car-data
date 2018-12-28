@@ -2,7 +2,7 @@ import collection from 'lodash/collection'
 const state = {
   list: [],
   selected: '',
-  checked: ['渝A0G096'], // TODO for test
+  checked: ['渝A0G801'], // TODO for test
   selectList: []
 }
 

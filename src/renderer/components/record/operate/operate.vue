@@ -151,10 +151,10 @@ export default {
     return {
       formItem: {
         // TODO for test
-        id: "渝A0G096",
+        id: "渝A0G801",
         datetime: {
-          start: "2018-01-01T09:00:00Z",
-          end: "2018-01-01T10:00:00Z"
+          start: "2018-01-01T05:30:00Z",
+          end: "2018-01-01T05:40:00Z"
         },
         select: "",
         display: ["轨迹"],
@@ -298,7 +298,8 @@ export default {
       multiCar({
         id: this.$store.state.list.checked,
         datetime: this.formItem.datetime,
-        file: this.formItem.file
+        file: this.formItem.file,
+        now: dateTime()
       });
     },
     sliderChange(value) {
