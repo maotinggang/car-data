@@ -32,7 +32,7 @@ const saveNoAnalyze = data => {
 
 const saveStart = data => {
   let saveData = `#################分析数据开始#################\r\n
-  开始时间：${data.now}\r\n
+  开始时间：${data.start}\r\n
   保存文件：${data.file}\r\n
   分析时段：${dateTime({
     date: new Date(data.datetime.start)
@@ -48,7 +48,7 @@ const saveStart = data => {
 }
 const saveEnd = data => {
   let saveData = `#############分析数据结束#############
-  结束时间：${data.now}
+  结束时间：${data.start}
   ##################################/n
   `
   fs.appendFile(data.file, saveData, err => {

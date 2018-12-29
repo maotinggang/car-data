@@ -58,6 +58,7 @@
     "iview": "^3.2.0",
     "lodash": "^4.17.11",
     "mariadb": "^2.0.2-rc",
+    "point-in-polygon": "^1.0.1",
     "vue": "^2.5.16",
     "vue-baidu-map": "^0.21.16",
     "vue-electron": "^1.0.6",

@@ -32,9 +32,20 @@ export default {
       this.listInit(data);
       this.loading = false;
     });
+    window.onresize = () => {
+      this.getWindowHeight(window.innerHeight);
+    };
+    window.onload = () => {
+      this.getWindowHeight(window.innerHeight);
+    };
   },
   methods: {
-    ...mapActions("list", ["listInit", "deviceChecked", "deviceSelected"]),
+    ...mapActions("list", [
+      "listInit",
+      "deviceChecked",
+      "deviceSelected",
+      "getWindowHeight"
+    ]),
     onSelected(device) {
       if (device[0]) {
         this.deviceSelected(device[0].title);

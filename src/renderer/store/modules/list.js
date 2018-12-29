@@ -2,8 +2,9 @@ import collection from 'lodash/collection'
 const state = {
   list: [],
   selected: '',
-  checked: ['渝A0G801'], // TODO for test
-  selectList: []
+  checked: ['渝TT92098'], // TODO for test
+  selectList: [],
+  windowHeight: window.innerHeight
 }
 
 const mutations = {
@@ -24,10 +25,16 @@ const mutations = {
   DEVICE_CHECKED(state, devices) {
     state.checked = []
     state.checked = devices
+  },
+  WINDOW_HEIGHT(state, value) {
+    state.windowHeight = value
   }
 }
 
 const actions = {
+  getWindowHeight({ commit }, value) {
+    commit('WINDOW_HEIGHT', value)
+  },
   listInit({ commit }, devices) {
     commit('LIST_INIT', devices)
   },

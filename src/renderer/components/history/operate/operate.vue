@@ -16,15 +16,6 @@
       ></Input>
     </FormItem>
     <FormItem
-      label="分析文件"
-      style="margin:2px 2px;"
-    >
-      <load-file
-        @input="formItem.file=$event"
-        placeholder="分析结果保存到文件"
-      >分析文件</load-file>
-    </FormItem>
-    <FormItem
       label="开始时间"
       style="margin:2px 2px;"
     >
@@ -58,23 +49,6 @@
       >轨迹</Checkbox>
       <Checkbox @on-change="onSpeed">限速</Checkbox>
       <Checkbox @on-change="onBorder">边界</Checkbox>
-    </FormItem>
-    <FormItem
-      label="数据筛选"
-      style="margin:2px 2px;"
-    >
-      <Checkbox
-        @on-change="onNormal"
-        :value="true"
-      >正常</Checkbox>
-      <Checkbox
-        @on-change="onOverSpeed"
-        :value="true"
-      >超速</Checkbox>
-      <Checkbox
-        @on-change="onOverBorder"
-        :value="true"
-      >越界</Checkbox>
     </FormItem>
     <FormItem
       label="播放速度"
@@ -140,58 +114,41 @@
 <script>
 import { asyncSelectCar, asyncSelectZone } from "../../../../lib/maria";
 import { EventBus } from "../../../../lib/event";
-import LoadFile from "../file";
 import { mapActions } from "vuex";
 import collection from "lodash/collection";
 import { gcj2bd } from "../../../../lib/coords";
 import dateTime from "date-time";
-import { multiCar } from "../../../../lib/analyze";
+import { historyAnalyze } from "../../../../lib/analyze";
 export default {
   data() {
     return {
       formItem: {
         // TODO for test
-        id: "渝A0G801",
+        id: "渝TT92098",
         datetime: {
-          start: "2018-01-01T05:30:00Z",
-          end: "2018-01-01T05:40:00Z"
+          start: "2018-01-01T00:00:00Z",
+          end: "2018-01-01T01:00:00Z"
         },
         select: "",
         display: ["轨迹"],
         filter: ["正常", "超速", "越界"],
-        slider: 1,
-        file:
-          "C:/Users/mg/Documents/comnav/work/部标机车辆数据分析/数据/test.txt"
-      },
-      analyzeNotice: false
+        slider: 1
+      }
     };
-  },
-  components: {
-    LoadFile
   },
   created() {
     EventBus.$on("device-selected", value => {
       this.formItem.id = value;
     });
-    EventBus.$on("analyze-notice", (desc, duration) => {
-      this.$Notice.info({
-        title: "分析车辆数据",
-        desc: desc,
-        duration: duration
-      });
-    });
   },
   methods: {
-    ...mapActions("record", [
+    ...mapActions("history", [
       "selectListAction",
       "selectClear",
       "playSpeed",
       "displayTrack",
       "displaySpeed",
-      "displayBorder",
-      "filterNormal",
-      "filterOverSpeed",
-      "filterOverBorder"
+      "displayBorder"
     ]),
     isSelectCar() {
       if (!this.formItem.id) {
@@ -240,7 +197,7 @@ export default {
         .then(result => {
           if (result[0]) {
             this.selectListAction(result);
-            EventBus.$emit("record-select-done");
+            EventBus.$emit("history-select-done");
           }
         })
         .catch(err => {
@@ -253,53 +210,33 @@ export default {
     },
     onClear() {
       this.selectClear();
-      EventBus.$emit("record-clear");
+      EventBus.$emit("history-clear");
     },
     onPlay() {
-      EventBus.$emit("record-play");
+      EventBus.$emit("history-play");
     },
     onPause() {
-      EventBus.$emit("record-pause");
+      EventBus.$emit("history-pause");
     },
     onStop() {
-      EventBus.$emit("record-stop");
-    },
-    isSelectFile() {
-      if (!this.formItem.file) {
-        this.$Message.error({
-          content: "请选择分析结果存储文件",
-          duration: 3,
-          closable: true
-        });
-        return false;
-      }
-      return true;
-    },
-    isCheckedDevice(id) {
-      if (!id) {
-        this.$Message.error({
-          content: "请勾选待分析的车辆",
-          duration: 3,
-          closable: true
-        });
-        return false;
-      }
-      return true;
+      EventBus.$emit("history-stop");
     },
     // 分析越界超速
     onAnalyze() {
-      if (
-        !this.isSelectFile() ||
-        !this.isCheckedDevice(this.$store.state.list.checked[0]) ||
-        !this.isSelectTime()
-      ) {
+      if (!this.isSelectCar() || !this.isSelectTime()) {
         return;
       }
-      multiCar({
+      this.$Notice.info({
+        title: "开始分析车辆数据",
+        desc: this.formItem.id,
+        duration: 0
+      });
+      // TODO 分析查询数据
+      historyAnalyze({
         id: this.$store.state.list.checked,
         datetime: this.formItem.datetime,
         file: this.formItem.file,
-        now: dateTime()
+        start: dateTime()
       });
     },
     sliderChange(value) {
@@ -385,18 +322,6 @@ export default {
         .catch(err => {
           console.log(JSON.stringify(err));
         });
-    },
-    onNormal(value) {
-      if (!this.isSelectCar()) return;
-      this.displayBorder(value);
-    },
-    onOverSpeed(value) {
-      if (!this.isSelectCar()) return;
-      this.displayBorder(value);
-    },
-    onOverBorder(value) {
-      if (!this.isSelectCar()) return;
-      this.displayBorder(value);
     }
   }
 };

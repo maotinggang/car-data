@@ -3,7 +3,7 @@
   <div class="table">
     <Table
       :columns="columns"
-      :height="tableheight"
+      :height="windowHeight-280"
       :data="selectList"
       size="small"
       highlight-row
@@ -35,24 +35,19 @@ export default {
           width: 60,
           align: "center"
         }
-      ],
-      tableheight: 0
+      ]
     };
   },
-  created() {
-    window.onresize = () => {
-      this.tableheight = window.innerHeight - 330;
-    };
-    window.onload = () => {
-      this.tableheight = window.innerHeight - 330;
-    };
-  },
+  created() {},
   computed: {
-    ...mapState("record", ["selectList"])
+    ...mapState("history", ["selectList"]),
+    windowHeight() {
+      return this.$store.state.list.windowHeight;
+    }
   },
   methods: {
     deviceClick(value) {
-      EventBus.$emit("record-clicked", value);
+      EventBus.$emit("history-clicked", value);
     }
   }
 };

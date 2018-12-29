@@ -8,11 +8,20 @@ export default new Router({
     {
       path: '/',
       name: 'main',
-      component: require('@/components/main').default
-    },
-    {
-      path: '*',
-      redirect: '/'
+      component: require('@/components/main').default,
+      redirect: 'history',
+      children: [
+        {
+          path: 'history',
+          name: 'history',
+          component: () => import('@/components/history')
+        },
+        {
+          path: 'statistics',
+          name: 'statistics',
+          component: () => import('@/components/statistics')
+        }
+      ]
     }
   ]
 })

@@ -1,63 +1,35 @@
 <template>
   <div class="layout">
-    <Sider
-      :style="{position: 'fixed', height: '100vh', left: 0, overflow: 'auto'}"
-      class="layout-sider"
-      :width=160
-    >
-      <Card
-        :padding=0
-        :bordered=false
+    <Layout>
+      <Header class="layout-header">
+        <menu-all></menu-all>
+      </Header>
+      <Sider
+        class="layout-sider"
+        :width=170
       >
-        <p
-          slot="title"
-          :style="{textAlign: 'center'}"
-        >车辆列表</p>
-        <list></list>
-      </Card>
-    </Sider>
-    <Layout :style="{marginLeft: '160px',marginRight: '330px'}">
-      <Content>
-        <Row>
-          <Col>
-          <results></results>
-          </Col>
-        </Row>
-        <Row>
-          <Col>
-          <baidu2></baidu2>
-          </Col>
-        </Row>
+        <Card
+          :padding=0
+          :bordered=false
+        >
+          <list></list>
+        </Card>
+      </Sider>
+      <Content class="layout-content">
+        <keep-alive>
+          <router-view></router-view>
+        </keep-alive>
       </Content>
     </Layout>
-    <Sider
-      class="layout-sider-record"
-      :width=330
-    >
-      <Card
-        :padding=0
-        :bordered=false
-      >
-        <p
-          slot="title"
-          :style="{textAlign: 'center'}"
-        >数据记录</p>
-        <record></record>
-      </Card>
-    </Sider>
   </div>
 </template>
 <script>
-import { Baidu2 } from "@/components/map";
 import List from "@/components/list";
-import Record from "@/components/record";
-import Results from "@/components/results";
+import MenuAll from "@/components/menu";
 export default {
   components: {
-    Baidu2,
     List,
-    Record,
-    Results
+    MenuAll
   }
 };
 </script>
@@ -70,19 +42,27 @@ export default {
   overflow: hidden;
 }
 .layout-sider {
-  background: white;
-}
-.layout-sider-record {
-  background: white;
   position: fixed;
-  top: 2px;
-  right: 0;
+  background: white;
+  overflow: auto;
+  top: 64px;
   bottom: 0;
 }
-.layout-card {
-  padding: 0px;
+.layout-header {
+  position: fixed;
+  background-color: white;
+  width: 100%;
+  height: 64px;
+  padding: 0;
 }
 .layout-content {
+  position: fixed;
+  border: 1px solid #d7dde4;
+  background-color: white;
+  width: 100%;
+  top: 64px;
+  bottom: 0px;
+  margin-left: 170px;
   overflow: hidden;
 }
 </style>

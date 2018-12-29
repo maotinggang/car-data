@@ -26,6 +26,26 @@ const asyncSelectAll = async data => {
 }
 
 /**
+ * @description 查询所有分析数据
+ * @param {String} data
+ * @returns {Array}
+ */
+const asyncSelectAllAnalyze = async data => {
+  let conn
+  try {
+    conn = await pool.getConnection()
+    const res = await conn.query(
+      'SELECT * FROM `analyze` WHERE start=' + `'${data}'`
+    )
+    return res
+  } catch (err) {
+    console.log(err)
+  } finally {
+    if (conn) conn.destroy()
+  }
+}
+
+/**
  * @description 根据表名查询所有数据
  * @param {Object} data
  * @returns {Array}
@@ -92,12 +112,13 @@ async function asyncSaveAnalyze(data) {
   let conn
   let sql =
     'INSERT INTO `analyze` VALUES ' +
-    `('${data.id}','${data.time}','${data.now}',${data.lng},${data.lat},${
+    `('${data.id}','${data.time}','${data.start}',${data.lng},${data.lat},${
       data.speed
     },${data.over},${data.direction},'${data.state}',${data.stano})`
   try {
     conn = await pool.getConnection()
     conn.query(sql)
+    return // FIXME 一定要加返回，不然后续操作错误
   } catch (err) {
     console.log(JSON.stringify(err))
   } finally {
@@ -105,4 +126,10 @@ async function asyncSaveAnalyze(data) {
   }
 }
 
-export { asyncSelectAll, asyncSelectCar, asyncSelectZone, asyncSaveAnalyze }
+export {
+  asyncSelectAll,
+  asyncSelectCar,
+  asyncSelectZone,
+  asyncSaveAnalyze,
+  asyncSelectAllAnalyze
+}

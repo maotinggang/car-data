@@ -5,10 +5,7 @@ const state = {
   playSpeed: 1000,
   displayTrack: true,
   displaySpeed: [],
-  displayBorder: [],
-  filterNormal: true,
-  filterOverSpeed: true,
-  filterOverBorder: true
+  displayBorder: []
 }
 
 const mutations = {
@@ -45,15 +42,6 @@ const mutations = {
   },
   DISPLAY_BORDER(state, value) {
     state.displayBorder = value
-  },
-  FILTER_NORMAL(state, value) {
-    state.filterNormal = value
-  },
-  FILTER_OVER_SPEED(state, value) {
-    state.filterOverSpeed = value
-  },
-  FILTER_OVER_BORDER(state, value) {
-    state.filterOverBorder = value
   }
 }
 
@@ -64,7 +52,7 @@ const actions = {
   playSpeed({ commit }, value) {
     commit('PLAY_SPEED', value * 1000)
   },
-  selectListAction({ commit, state }, list) {
+  selectListAction({ commit }, list) {
     commit('SELECT_LIST_ACTION', list)
   },
   selectResave({ commit }, list) {
@@ -81,15 +69,6 @@ const actions = {
   },
   displayBorder({ commit }, value) {
     commit('DISPLAY_BORDER', value)
-  },
-  filterNormal({ commit }, value) {
-    commit('FILTER_NORMAL', value)
-  },
-  filterOverSpeed({ commit }, value) {
-    commit('FILTER_OVER_SPEED', value)
-  },
-  filterOverBorder({ commit }, value) {
-    commit('FILTER_OVER_BORDER', value)
   }
 }
 
