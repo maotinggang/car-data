@@ -2,7 +2,9 @@ import collection from 'lodash/collection'
 import { wgs2bd } from '../../../lib/coords'
 import { asyncSelectAllAnalyze } from '../../../lib/maria'
 const state = {
-  analyzeTable: []
+  analyzeTable: [],
+  analyzeSpeed: true,
+  analyzeBorder: false
 }
 
 const mutations = {
@@ -12,6 +14,12 @@ const mutations = {
   },
   ANALYZE_CLEAR(state) {
     state.analyzeTable = []
+  },
+  ANALYZE_SPEED(state, value) {
+    state.analyzeSpeed = value
+  },
+  ANALYZE_BORDER(state, value) {
+    state.analyzeBorder = value
   }
 }
 
@@ -24,7 +32,6 @@ const actions = {
       .then(result => {
         collection.forEach(result, (value, key) => {
           result[key].no = key + 1
-          if (result[key].over) result[key].over += '%'
           let coord = wgs2bd(value.lat, value.lng)
           result[key].lat = coord[0]
           result[key].lng = coord[1]
@@ -34,6 +41,12 @@ const actions = {
       .catch(err => {
         console.log(err)
       })
+  },
+  analyzeSpeed({ commit }, value) {
+    commit('ANALYZE_SPEED', value)
+  },
+  analyzeBorder({ commit }, value) {
+    commit('ANALYZE_BORDER', value)
   }
 }
 

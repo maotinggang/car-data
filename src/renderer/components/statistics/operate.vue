@@ -48,6 +48,16 @@
         v-model="formItem.datetime.end"
       ></DatePicker>
     </FormItem>
+    <FormItem
+      label="分析类型"
+      style="margin:2px 2px;"
+    >
+      <Checkbox
+        @on-change="onSpeed"
+        :value="true"
+      >超速</Checkbox>
+      <Checkbox @on-change="onBorder">越界</Checkbox>
+    </FormItem>
     <div style="margin:10px 0 10px 0;text-align: center;">
       <Button
         type="primary"
@@ -122,7 +132,12 @@ export default {
     });
   },
   methods: {
-    ...mapActions("statistics", ["analyzeTableAction", "analyzeClear"]),
+    ...mapActions("statistics", [
+      "analyzeTableAction",
+      "analyzeClear",
+      "analyzeSpeed",
+      "analyzeBorder"
+    ]),
     isSelectCar() {
       if (!this.formItem.id) {
         this.$Message.error({
@@ -221,8 +236,19 @@ export default {
         id: this.$store.state.list.checked,
         datetime: this.formItem.datetime,
         file: this.formItem.file,
-        start: dateTime()
+        start: dateTime(),
+        type: {
+          speed: this.$store.state.statistics.analyzeSpeed,
+          border: this.$store.state.statistics.analyzeBorder
+        }
       });
+    },
+    // 选择需要分析的类型
+    onSpeed(value) {
+      this.analyzeSpeed(value);
+    },
+    onBorder(value) {
+      this.analyzeBorder(value);
     }
   }
 };

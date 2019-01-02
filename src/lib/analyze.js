@@ -1,9 +1,7 @@
 import { EventBus } from './event'
 import collection from 'lodash/collection'
-import math from 'lodash/math'
 import dateTime from 'date-time'
 import { asyncSelectCar, asyncSelectZone, asyncSaveAnalyze } from './maria'
-// import { isInner } from './zone'
 import insider from 'point-in-polygon'
 import { saveNoAnalyze } from './save'
 import { each, series } from 'async'
@@ -66,25 +64,17 @@ const singalCar = (data, callback) => {
             series(
               [
                 callback => {
+                  if (!data.type.border) {
+                    return callback()
+                  }
                   // 判断是否越界
                   if (data.zone.border[0]) {
-                    // each(
-                    //   data.zone.border,
-                    //   (border, callback) => {
-                    //     if (!insider(coord, border.polygon)) {
-                    //       ret.state = 'B'
-                    //       ret.raw = value
-                    //     }
-                    //     callback()
-                    //   },
-                    //   err => {
-                    //     callback(err)
-                    //   }
-                    // )
+                    ret.state = '越界'
+                    ret.raw = value
                     collection.some(data.zone.border, border => {
-                      if (!insider(coord, border.polygon)) {
-                        ret.state = '越界'
-                        ret.raw = value
+                      if (insider(coord, border.polygon)) {
+                        ret.state = ''
+                        ret.raw = ''
                         return true
                       }
                     })
@@ -94,6 +84,9 @@ const singalCar = (data, callback) => {
                   }
                 },
                 callback => {
+                  if (!data.type.speed) {
+                    return callback()
+                  }
                   // 判断是否超速
                   if (data.zone.speed[0]) {
                     if (value.speed <= data.zone.speed[0].speed) {
@@ -106,40 +99,12 @@ const singalCar = (data, callback) => {
                           insider(coord, speed.polygon)
                         ) {
                           ret.state = '超速'
-                          ret.speed = math.floor(
-                            ((value.speed - speed.speed) / speed.speed) * 100,
-                            1
-                          )
+                          ret.speed = speed.speed
                           ret.raw = value
                           return true
                         }
                       })
                       callback()
-
-                      // each(
-                      //   data.zone.speed,
-                      //   (speed, callback) => {
-                      //     // 判断是否超速
-                      //     if (value.speed > speed.speed) {
-                      //       // 是否在此区域
-                      //       if (insider(coord, speed.polygon)) {
-                      //         ret.state += 'S'
-                      //         ret.speed = math.floor(
-                      //           ((value.speed - speed.speed) / speed.speed) *
-                      //             100,
-                      //           1
-                      //         )
-                      //         ret.raw = value
-                      //       }
-                      //       callback()
-                      //     } else {
-                      //       callback()
-                      //     }
-                      //   },
-                      //   err => {
-                      //     callback(err)
-                      //   }
-                      // )
                     }
                   } else {
                     callback()
@@ -159,17 +124,27 @@ const singalCar = (data, callback) => {
                 }
               ],
               err => {
-                callback(err)
+                if (err) {
+                  console.log(err)
+                }
+                callback()
               }
             )
           },
           err => {
-            callback(err)
+            if (err) {
+              console.log(err)
+            }
+            if (index === count - 1) {
+              callback(err)
+            }
           }
         )
       })
       .catch(err => {
-        callback(err)
+        if (err) {
+          console.log(err)
+        }
       })
   }
 }
@@ -223,7 +198,7 @@ const pointAnalyze = (data, callback) => {
               }
             })
             // 无越界或限速边界时处理
-            if (!allZone.speed[0]) {
+            if (!allZone.speed[0] && data.type.speed) {
               // 存储到分析数据库
               let saveData = analyzePoint
               saveData.id = value
@@ -235,7 +210,7 @@ const pointAnalyze = (data, callback) => {
               // 根据速度排序
               allZone.speed = collection.sortBy(allZone.speed, ['speed'])
             }
-            if (!allZone.border[0]) {
+            if (!allZone.border[0] && data.type.border) {
               let saveData = analyzePoint
               saveData.id = value
               saveData.time = 0
@@ -249,6 +224,7 @@ const pointAnalyze = (data, callback) => {
                 id: value,
                 datetime: data.datetime,
                 start: data.start,
+                type: data.type,
                 zone: allZone
               },
               err => {
@@ -279,12 +255,21 @@ const allAnalyze = (data, callback) => {
 }
 
 /**
+ * @description 判断超速正确性,采用async控制流程
+ * @param {Object} data
+ */
+const overSpeedAnalyze = (data, callback) => {
+  callback()
+}
+
+/**
  * @description 多车辆任意时段数据分析,采用async/auto控制流程
  * @param {Object} data
  */
 const multiCar = data => {
   series(
     [
+      // 开始分析
       callback => {
         EventBus.$emit(
           'statistics-analyze-notice',
@@ -293,21 +278,26 @@ const multiCar = data => {
         )
         callback()
       },
+      // 超速越界点筛选
       callback => {
         pointAnalyze(data, err => {
           callback(err)
         })
       },
+      // 超速正确性判断分析
+      callback => {
+        overSpeedAnalyze(data, err => {
+          callback(err)
+        })
+      },
+      // 统计分析
       callback => {
         allAnalyze(data, err => {
           callback(err)
         })
-      }
-    ],
-    err => {
-      if (err) {
-        console.log(JSON.stringify(err))
-      } else {
+      },
+      // 分析完成
+      callback => {
         data.end = dateTime()
         EventBus.$emit(
           'statistics-analyze-notice',
@@ -315,6 +305,12 @@ const multiCar = data => {
           0
         )
         EventBus.$emit('statistics-analyze-done', data)
+        callback()
+      }
+    ],
+    err => {
+      if (err) {
+        console.log(JSON.stringify(err))
       }
     }
   )

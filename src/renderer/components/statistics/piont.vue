@@ -47,9 +47,9 @@ export default {
           align: "center"
         },
         {
-          title: "超速",
+          title: "限速",
           key: "over",
-          width: 80,
+          width: 60,
           align: "center"
         },
         {
