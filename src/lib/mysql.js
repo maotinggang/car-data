@@ -122,5 +122,6 @@ export {
   asyncSelectCar,
   asyncSelectZone,
   asyncSaveAnalyze,
-  asyncSelectAllAnalyze
+  asyncSelectAllAnalyze,
+  pool
 }

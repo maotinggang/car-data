@@ -3,7 +3,7 @@
     <Layout>
       <Content style="text-align: center;">
         <Card :padding=2>
-          <p slot="title">告警点表</p>
+          <p slot="title">告警点详情表</p>
           <point></point>
         </Card>
       </Content>

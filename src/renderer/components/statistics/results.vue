@@ -2,7 +2,7 @@
   <div class="table">
     <Table
       :columns="columns"
-      :height="windowHeight-310"
+      :height="windowHeight-340"
       :data="data"
       size="small"
       highlight-row

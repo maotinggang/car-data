@@ -15,9 +15,9 @@ const mutations = {
       list[key].no = key + 1
       list[key].time = value.time
       if (list[key].state === 'True') {
-        list[key].state = '正常'
+        list[key].state = '定位'
       } else {
-        list[key].state = '未知'
+        list[key].state = '不定位'
       }
       let coord = wgs2bd(value.lat, value.lng)
       list[key].lat = coord[0]

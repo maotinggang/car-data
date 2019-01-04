@@ -55,7 +55,9 @@ export default {
     onChecked(devices) {
       let temp = [];
       collection.forEach(devices, value => {
-        temp.push(value.title);
+        if (!value.children) {
+          temp.push(value.title);
+        }
       });
       this.deviceChecked(temp);
     }

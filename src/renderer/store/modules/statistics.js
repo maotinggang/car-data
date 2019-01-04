@@ -4,7 +4,8 @@ import { asyncSelectAllAnalyze } from '../../../lib/maria'
 const state = {
   analyzeTable: [],
   analyzeSpeed: true,
-  analyzeBorder: false
+  analyzeBorder: false,
+  analyzeZone: false
 }
 
 const mutations = {
@@ -20,6 +21,9 @@ const mutations = {
   },
   ANALYZE_BORDER(state, value) {
     state.analyzeBorder = value
+  },
+  ANALYZE_ZONE(state, value) {
+    state.analyzeZone = value
   }
 }
 
@@ -35,6 +39,7 @@ const actions = {
           let coord = wgs2bd(value.lat, value.lng)
           result[key].lat = coord[0]
           result[key].lng = coord[1]
+          if (value.estimate) result[key].estimate = value.estimate + '%'
         })
         commit('ANALYZE_TABLE_ACTION', result)
       })
@@ -47,6 +52,9 @@ const actions = {
   },
   analyzeBorder({ commit }, value) {
     commit('ANALYZE_BORDER', value)
+  },
+  analyzeZone({ commit }, value) {
+    commit('ANALYZE_ZONE', value)
   }
 }
 

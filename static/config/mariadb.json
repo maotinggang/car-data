@@ -2,6 +2,6 @@
   "host": "localhost",
   "user": "root",
   "password": "microgram",
-  "connectionLimit": 10,
-  "database": "car_data"
+  "database": "car_data",
+  "connectionLimit": 10
 }

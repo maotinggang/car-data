@@ -5,12 +5,14 @@
       :columns="columns"
       :height="windowHeight-120"
       :data="analyzeTable"
+      ref="table"
       size="small"
       highlight-row
     ></Table>
   </div>
 </template>
 <script>
+import { EventBus } from "../../../lib/event";
 import { mapState } from "vuex";
 export default {
   data() {
@@ -38,6 +40,12 @@ export default {
           title: "状态",
           key: "state",
           width: 60,
+          align: "center"
+        },
+        {
+          title: "准确率",
+          key: "estimate",
+          width: 80,
           align: "center"
         },
         {
@@ -78,6 +86,13 @@ export default {
     windowHeight() {
       return this.$store.state.list.windowHeight;
     }
+  },
+  created() {
+    EventBus.$on("statistics-save", value => {
+      this.$refs.table.exportCsv({
+        filename: value.start
+      });
+    });
   }
 };
 </script>

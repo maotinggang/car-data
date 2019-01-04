@@ -81,13 +81,6 @@
         @click="onClear"
       >清除</Button>
       <Button
-        style="margin-left: 5px"
-        type="success"
-        size="small"
-        ghost
-        @click="onAnalyze"
-      >分析</Button>
-      <Button
         style="margin-left: 30px"
         type="success"
         size="small"
@@ -118,20 +111,17 @@ import { mapActions } from "vuex";
 import collection from "lodash/collection";
 import { gcj2bd } from "../../../../lib/coords";
 import dateTime from "date-time";
-import { historyAnalyze } from "../../../../lib/analyze";
 export default {
   data() {
     return {
       formItem: {
-        // TODO for test
-        id: "渝TT92098",
+        id: "",
         datetime: {
-          start: "2018-01-01T00:00:00Z",
-          end: "2018-01-01T01:00:00Z"
+          start: "",
+          end: ""
         },
         select: "",
         display: ["轨迹"],
-        filter: ["正常", "超速", "越界"],
         slider: 1
       }
     };
@@ -220,24 +210,6 @@ export default {
     },
     onStop() {
       EventBus.$emit("history-stop");
-    },
-    // 分析越界超速
-    onAnalyze() {
-      if (!this.isSelectCar() || !this.isSelectTime()) {
-        return;
-      }
-      this.$Notice.info({
-        title: "开始分析车辆数据",
-        desc: this.formItem.id,
-        duration: 0
-      });
-      // TODO 分析查询数据
-      historyAnalyze({
-        id: this.$store.state.list.checked,
-        datetime: this.formItem.datetime,
-        file: this.formItem.file,
-        start: dateTime()
-      });
     },
     sliderChange(value) {
       this.playSpeed(value);

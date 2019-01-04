@@ -12,9 +12,9 @@
   },
   "mariadb": {
     "host": "localhost",
-    "user": "microgram",
+    "user": "root",
     "password": "microgram",
-    "connectionLimit": 10,
+    "connectionLimit": 200,
     "database": "car_data"
   }
 }
