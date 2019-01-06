@@ -29,7 +29,7 @@
         :stroke-weight="3"
         :fillColor="item.color"
         :fillOpacity="0.3"
-        :dblclick="clickPolygon"
+        @click="clickPolygon($event,item)"
       />
       <!-- 边界区域 -->
       <bm-polygon
@@ -42,7 +42,7 @@
         :stroke-weight="3"
         :fillColor="item.color"
         :fillOpacity="0.3"
-        :dblclick="clickPolygon"
+        @click="clickPolygon($event,item)"
       />
       <!-- 起点 -->
       <bm-marker
@@ -113,6 +113,24 @@
           </Row>
         </span>
       </bm-info-window>
+      <bm-info-window
+        :position="{lng: zoneInfo.lng, lat: zoneInfo.lat}"
+        :show="showZoneWindow"
+        @close="infoWindowClose"
+        @open="infoWindowOpen"
+        :title="zoneInfo.name"
+        :offset="{width:3,height:-3}"
+      ><span class="point-span">
+          <Row>
+            <Col span="12">
+            类型：{{zoneInfo.type}}
+            </Col>
+            <Col span="12">
+            限速：{{zoneInfo.speed}}
+            </Col>
+          </Row>
+        </span>
+      </bm-info-window>
     </baidu-map>
   </div>
 </template>
@@ -128,6 +146,7 @@ export default {
       play: true,
       center: { lng: 116.404, lat: 39.915 },
       pointInfo: "",
+      zoneInfo: "",
       path: [],
       iconCar: {
         url: "../../../../static/img/car.png",
@@ -145,6 +164,7 @@ export default {
         opts: { anchor: { width: 25, height: 38 } }
       },
       showInfoWindow: false,
+      showZoneWindow: false,
       showTrack: false
     };
   },
@@ -184,12 +204,19 @@ export default {
   methods: {
     ...mapActions("history", ["selectResave"]),
     infoWindowClose() {
-      this.show = false;
+      this.showInfoWindow = false;
+      this.showZoneWindow = false;
     },
     infoWindowOpen() {
-      this.show = true;
+      this.showInfoWindow = true;
+      this.showZoneWindow = true;
     },
-    clickPolygon() {}
+    clickPolygon(e, value) {
+      this.showZoneWindow = true;
+      value.lng = e.point.lng;
+      value.lat = e.point.lat;
+      this.zoneInfo = value;
+    }
   },
   computed: {
     ...mapState("history", [

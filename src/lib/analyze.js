@@ -2,8 +2,9 @@ import { EventBus } from './event'
 import collection from 'lodash/collection'
 import dateTime from 'date-time'
 import insider from 'point-in-polygon'
-import { series } from 'async'
+import { series, auto, each, eachSeries } from 'async'
 import { wgs2gcj } from './coords'
+import { getZone, estimateInit } from './analyzeTools'
 var knex = require('knex')({
   client: 'mysql',
   connection: {
@@ -12,7 +13,9 @@ var knex = require('knex')({
     password: 'microgram',
     database: 'car_data'
   },
-  pool: { min: 0, max: 7 }
+  // acquireTimeoutMillis: 60000,
+  // idleTimeoutMillis: 10000,
+  pool: { min: 10, max: 100 }
 })
 const analyzePoint = {
   id: '',
@@ -21,9 +24,10 @@ const analyzePoint = {
   lng: null,
   lat: null,
   speed: null,
-  over: null,
+  limit: null,
   direction: null,
   state: '',
+  alert: null,
   estimate: null,
   stano: null
 }
@@ -35,7 +39,7 @@ const analyzePoint = {
  */
 const singalCar = data => {
   // 按照每24小时间隔进行分析
-  let intervalTime = 24 * 60 * 60 * 1000
+  let intervalTime = 24 * 7 * 60 * 60 * 1000
   let startTime = new Date(data.datetime.start)
   let endTime = new Date(data.datetime.end)
   let startMill = startTime.getTime()
@@ -55,86 +59,65 @@ const singalCar = data => {
         dateTime({ date: new Date(start) }),
         dateTime({ date: new Date(end) })
       ])
-      .map(value => {
-        let ret = { state: '', speed: '', raw: '', estimate: 0 }
-        // 根据状态和卫星数判断，量化准确率
-        // 定位30
-        if (value.state === 'True') ret.estimate += 30
-        // 卫星数10,20,30
-        if (value.stano > 15) ret.estimate += 30
-        else if (value.stano > 8) ret.estimate += 15
-        else if (value.stano > 4) ret.estimate += 5
-        // 速度5
-        if (value.speed > 0) ret.estimate += 5
-        // 方向5
-        if (value.direction !== 0) ret.estimate += 5
-
-        // wgs 转 高德
-        let coord = wgs2gcj(value.lng, value.lat)
-        // 判断是否越界
-        if (data.type.border && data.zone.border[0]) {
-          ret.state = '越界'
-          ret.raw = value
-          collection.some(data.zone.border, border => {
-            if (insider(coord, border.polygon)) {
-              ret.state = ''
-              ret.raw = ''
-              return true
+      .then(values => {
+        eachSeries(
+          values,
+          (value, callback) => {
+            let ret = { alert: '', limit: '', raw: '' }
+            // wgs 转 高德
+            let coord = wgs2gcj(value.lng, value.lat)
+            // 判断是否越界
+            if (data.type.border && data.zone.border[0]) {
+              ret.alert = '越界'
+              ret.raw = value
+              collection.some(data.zone.border, border => {
+                if (insider(coord, border.polygon)) {
+                  ret.alert = ''
+                  ret.raw = ''
+                  return true
+                }
+              })
             }
-          })
-        }
-        // 判断是否超速
-        if (data.type.speed && data.zone.speed[0]) {
-          // 大于最小限速
-          if (value.speed > data.zone.speed[0].speed) {
-            let overlap = 0
-            let zoneCount = data.zone.speed.length
-            for (let i = 0; i < zoneCount; i++) {
-              const speed = data.zone.speed[i]
-              // 限速区域判断
-              let over = value.speed - speed.speed
-              if (over > 0 && insider(coord, speed.polygon)) {
-                ret.state = '超速'
-                ret.speed = speed.speed
-                ret.raw = value
-                // 超速大小判断
-                if (over > 50) ret.estimate -= 30
-                else if (over > 30) ret.estimate -= 10
-                else if (over > 20) ret.estimate -= 5
-                else if (over > 10) ret.estimate += 10
-                else if (over > 5) ret.estimate += 5
-                else ret.estimate -= 5
-                // 区域重叠，同时出现在两个区域
-                overlap++
-                if (overlap > 1) ret.estimate -= 10
-                // 误差引起的区域错误
-                // 点漂移到低速区
-                if (i < zoneCount - 1) {
-                  let nextZone = data.zone.speed[i + 1]
-                  over = value.speed - nextZone.speed
-                  if (over > 10) ret.estimate += 20
-                  else if (over > 0) ret.estimate += 10
-                  else ret.estimate -= 10
+            // 判断是否超速
+            if (data.type.speed && data.zone.speed[0]) {
+              // 大于最小限速
+              if (value.speed > data.zone.speed[0].speed) {
+                let zoneCount = data.zone.speed.length
+                for (let i = 0; i < zoneCount; i++) {
+                  const speed = data.zone.speed[i]
+                  // 限速区域判断
+                  let over = value.speed - speed.speed
+                  if (over > 0 && insider(coord, speed.polygon)) {
+                    ret.alert = '超速'
+                    ret.limit = speed.speed
+                    ret.raw = value
+                  }
                 }
               }
             }
-          }
-          // TODO 点漂移到高速区，漏警
-        }
 
-        if (ret.state) {
-          let saveData = ret.raw
-          saveData.start = data.start
-          if (ret.speed) saveData.over = ret.speed
-          else saveData.over = null
-          saveData.estimate = ret.estimate
-          saveData.state = ret.state
-          knex('analyze')
-            .insert(saveData)
-            .catch(err => {
+            if (ret.alert) {
+              let saveData = ret.raw
+              saveData.start = data.start
+              if (ret.limit) saveData.limit = ret.limit
+              else saveData.limit = null
+              saveData.alert = ret.alert
+              knex('analyze')
+                .insert(saveData)
+                .asCallback(() => {
+                  callback()
+                })
+                .catch(err => {
+                  console.error(err)
+                })
+            } else callback()
+          },
+          err => {
+            if (err) {
               console.error(err)
-            })
-        }
+            }
+          }
+        )
       })
       .catch(err => {
         console.error(err)
@@ -146,11 +129,22 @@ const singalCar = data => {
  * @description 对每一个车单独进行分析，采用async/eachSeries控制流程
  * @param {Object} data
  */
-const pointAnalyze = data => {
+const pointAnalyze = (data, callback) => {
   // 按照顺序同步分析每一辆车，找出有问题点暂存数据库，等待下一步总体分析
   // 查找设备越界和超速区域，无结果时不进行分析，在分析文件标注
   for (let i = 0; i < data.id.length; i++) {
     const value = data.id[i]
+    // eachSeries(
+    //   data.id,
+    //   (value, callback) => {
+
+    //   },
+    //   err => {
+    //     if (err) {
+    //       console.error(err)
+    //     }
+    //   }
+    // )
     knex('zone')
       .select()
       .where('id', value)
@@ -158,35 +152,7 @@ const pointAnalyze = data => {
         if (result[0]) {
           // 采用高德坐标系，区域坐标不进行转换
           // 将字符串经纬度转换为数字数组
-          let allZone = { border: [], speed: [] }
-          collection.forEach(result, zone => {
-            let lngs = zone.lng.split(',')
-            let lats = zone.lat.split(',')
-            let polygon = []
-            for (let index = 0; index < lngs.length; index++) {
-              polygon.push([Number(lngs[index]), Number(lats[index])])
-            }
-            let speed = 0
-            try {
-              speed = Number(zone.speed)
-            } catch (err) {}
-            if (speed) {
-              allZone.speed.push({
-                id: zone.id,
-                name: zone.name,
-                type: zone.type,
-                speed: speed,
-                polygon: polygon
-              })
-            } else {
-              allZone.border.push({
-                id: zone.id,
-                name: zone.name,
-                type: zone.type,
-                polygon: polygon
-              })
-            }
-          })
+          let allZone = getZone(result)
           // 无越界或限速边界时处理
           if (!allZone.speed[0] && data.type.speed && data.type.zone) {
             // 存储到分析数据库
@@ -200,9 +166,6 @@ const pointAnalyze = data => {
               .catch(err => {
                 console.error(err)
               })
-          } else {
-            // 根据速度排序
-            allZone.speed = collection.sortBy(allZone.speed, ['speed'])
           }
           if (!allZone.border[0] && data.type.border && data.type.zone) {
             let saveData = analyzePoint
@@ -242,6 +205,7 @@ const pointAnalyze = data => {
         console.error(err)
       })
   }
+  callback()
 }
 
 /**
@@ -249,84 +213,143 @@ const pointAnalyze = data => {
  * @param {Object} data
  */
 const statistics = data => {
-  collection.forEach(data, value => {
-    // 获取区域数据
-    knex('zone')
-      .select()
-      .where('id', value.id)
-      .then(result => {
-        let allZone = { border: [], speed: [] }
-        collection.forEach(result, zone => {
-          let lngs = zone.lng.split(',')
-          let lats = zone.lat.split(',')
-          let polygon = []
-          for (let index = 0; index < lngs.length; index++) {
-            polygon.push([Number(lngs[index]), Number(lats[index])])
-          }
-          let speed = 0
-          try {
-            speed = Number(zone.speed)
-          } catch (err) {}
-          if (speed) {
-            allZone.speed.push({
-              id: zone.id,
-              name: zone.name,
-              type: zone.type,
-              speed: speed,
-              polygon: polygon
+  // 获取车辆初步分析数据
+  collection.forEach(data.id, value => {
+    auto(
+      {
+        get_points: callback => {
+          knex('analyze')
+            .select()
+            .where({ id: value, start: data.start })
+            .orderBy('time')
+            // .then(result => {
+            //   let err = null
+            //   if (!result[0]) err = 'noData'
+            //   callback(err, result)
+            // })
+            .asCallback((err, result) => {
+              if (!result[0]) err = 'noData'
+              callback(err, result)
             })
-          } else {
-            allZone.border.push({
-              id: zone.id,
-              name: zone.name,
-              type: zone.type,
-              polygon: polygon
+        },
+        get_zone: callback => {
+          knex('zone')
+            .select()
+            .where('id', value)
+            .asCallback((err, result) => {
+              if (!result[0]) err = 'noData'
+              else result = getZone(result)
+              callback(err, result)
             })
+          // .then(result => {
+          //   let err = null
+          //   if (!result[0]) err = 'noData'
+          //   else result = getZone(result)
+          //   callback(err, result)
+          // })
+        },
+        estimate: [
+          'get_points',
+          'get_zone',
+          (results, callback) => {
+            each(
+              results.get_points,
+              (value, callback) => {
+                let coord = wgs2gcj(value.lng, value.lat)
+                value.lng = coord[0]
+                value.lat = coord[1]
+                alertAnalyze({ point: value, zones: results.get_zone }, err => {
+                  callback(err)
+                })
+              },
+              err => {
+                callback(err)
+              }
+            )
           }
-        })
-        // 超速进一步分析
-        if (value.over > 0) {
-          overSpeedAnalyze({ value: value, zone: allZone.speed })
+        ]
+      },
+      err => {
+        if (err && err !== 'noData') {
+          console.error(err)
         }
-      })
-      .catch(err => {
-        console.error(err)
-      })
+      }
+    )
   })
 }
 
 /**
- * @description 判断超速正确性
+ * @description 判断告警正确性
  * @param {Object} data
  */
-const overSpeedAnalyze = data => {
+const alertAnalyze = (data, callback) => {
+  let estimate = estimateInit(data)
   // 获取前后一分钟数据
-  let now = new Date(data.value.time)
-  now.setMinutes(now.getMinutes() - 1)
+  let now = new Date(data.point.time)
+  now.setMinutes(now.getMinutes() - 2)
   let start = dateTime({ date: now })
-  now.setMinutes(now.getMinutes() + 2)
+  now.setMinutes(now.getMinutes() + 4)
   let end = dateTime({ date: now })
-  let estimate = data.value.extimate - 10
   knex('fengjie_1_3')
     .select()
-    .where({ id: data.value.id })
+    .where({ id: data.point.id })
     .andWhereBetween('time', [start, end])
+    .orderBy('time')
     .then(values => {
-      collection.forEach(values, value => {
-        // 判断前后一分钟是否有超速
-        if (value.speed > data.value.over) estimate += 10
-      })
-      // TODO 判断前后一分钟是否有区域变化
-      let overCount = 0
-      let zoneCount = data.zone.length
-      for (let i = 0; i < zoneCount; i++) {
-        const speed = data.zone[i]
-        // 限速区域判断
-        if (insider(coord, speed.polygon)) {
+      // 超速判断
+      if (data.point.alert === '超速') {
+        let pointsChange = []
+        collection.forEach(values, value => {
+          // 判断前后一分钟是否有超速
+          if (value.speed > data.point.limit) estimate += 10
+
+          // 判断前后一分钟是区域跳变情况
+          let coord = wgs2gcj(value.lng, value.lat)
+          collection.some(data.zones.speed, zone => {
+            if (insider(coord, zone.polygon)) {
+              pointsChange.push(zone.speed)
+              return true
+            }
+          })
+        })
+        // 统计区域跳变
+        let count = 0
+        let nowSpeed = 0
+        collection.forEach(pointsChange, value => {
+          if (nowSpeed !== value) {
+            nowSpeed = value
+            count++
           }
+        })
+        if (count === 1) {
+          estimate += 10
+        } else if (count === 2) {
+          estimate -= 20
+        } else if (count > 2) {
+          estimate -= 30
         }
       }
-      // 通过坐标计算平均速度
+      // TODO 越界判断
+
+      // 更新数据库estimate
+      if (estimate > 100) {
+        estimate = 100
+      } else if (estimate <= 0) {
+        estimate = 0
+      }
+      knex('analyze')
+        .where({
+          id: data.point.id,
+          time: data.point.time,
+          start: data.point.start
+        })
+        .update({ estimate: estimate })
+        .then(() => {
+          callback()
+        })
+        .catch(err => {
+          console.error(err)
+        })
     })
     .catch(err => {
       console.error(err)
@@ -351,8 +374,9 @@ const multiCar = data => {
       },
       // 超速越界点筛选
       callback => {
-        pointAnalyze(data)
-        callback()
+        pointAnalyze(data, () => {
+          callback()
+        })
       },
       // 分析完成
       callback => {
@@ -380,4 +404,4 @@ const multiCar = data => {
  * @param {Object} data
  */
 const historyAnalyze = data => {}
-export { multiCar, historyAnalyze, statistics, overSpeedAnalyze }
+export { multiCar, historyAnalyze, statistics }

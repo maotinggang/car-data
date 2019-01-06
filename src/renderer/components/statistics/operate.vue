@@ -167,8 +167,7 @@ export default {
       return true;
     },
     onStatistics() {
-      if (!this.isDisplayTable()) return;
-      statistics(this.$store.state.statistics.analyzeTable);
+      statistics(this.analyzeData);
     },
     onClear() {
       this.analyzeClear();
@@ -201,7 +200,6 @@ export default {
       this.analyzeData = {
         id: this.$store.state.list.checked,
         datetime: this.formItem.datetime,
-        file: this.formItem.file,
         start: dateTime(),
         type: {
           speed: this.$store.state.statistics.analyzeSpeed,

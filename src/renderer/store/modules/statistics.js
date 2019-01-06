@@ -40,6 +40,11 @@ const actions = {
           result[key].lat = coord[0]
           result[key].lng = coord[1]
           if (value.estimate) result[key].estimate = value.estimate + '%'
+          if (value.state === 'True') {
+            result[key].state = '定位'
+          } else {
+            result[key].state = '不定位'
+          }
         })
         commit('ANALYZE_TABLE_ACTION', result)
       })

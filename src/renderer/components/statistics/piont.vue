@@ -37,8 +37,8 @@ export default {
           align: "center"
         },
         {
-          title: "状态",
-          key: "state",
+          title: "告警",
+          key: "alert",
           width: 60,
           align: "center"
         },
@@ -56,8 +56,14 @@ export default {
         },
         {
           title: "限速",
-          key: "over",
+          key: "limit",
           width: 60,
+          align: "center"
+        },
+        {
+          title: "状态",
+          key: "state",
+          width: 70,
           align: "center"
         },
         {
