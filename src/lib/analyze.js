@@ -15,7 +15,7 @@ var knex = require('knex')({
   },
   // acquireTimeoutMillis: 60000,
   // idleTimeoutMillis: 10000,
-  pool: { min: 10, max: 100 }
+  pool: { min: 1, max: 10 }
 })
 const analyzePoint = {
   id: '',
@@ -38,7 +38,7 @@ const analyzePoint = {
  * @returns {Object} err data
  */
 const singalCar = data => {
-  // 按照每24小时间隔进行分析
+  // 按照每7*24小时间隔进行分析
   let intervalTime = 24 * 7 * 60 * 60 * 1000
   let startTime = new Date(data.datetime.start)
   let endTime = new Date(data.datetime.end)
@@ -134,76 +134,68 @@ const pointAnalyze = (data, callback) => {
   // 查找设备越界和超速区域，无结果时不进行分析，在分析文件标注
   for (let i = 0; i < data.id.length; i++) {
     const value = data.id[i]
-    // eachSeries(
-    //   data.id,
-    //   (value, callback) => {
-
-    //   },
-    //   err => {
-    //     if (err) {
-    //       console.error(err)
-    //     }
-    //   }
-    // )
-    knex('zone')
-      .select()
-      .where('id', value)
-      .then(result => {
-        if (result[0]) {
-          // 采用高德坐标系，区域坐标不进行转换
-          // 将字符串经纬度转换为数字数组
-          let allZone = getZone(result)
-          // 无越界或限速边界时处理
-          if (!allZone.speed[0] && data.type.speed && data.type.zone) {
-            // 存储到分析数据库
-            let saveData = analyzePoint
-            saveData.id = value
-            saveData.time = 0
-            saveData.start = data.start
-            saveData.state = '无限速区'
-            knex('analyze')
-              .insert(saveData)
-              .catch(err => {
-                console.error(err)
-              })
-          }
-          if (!allZone.border[0] && data.type.border && data.type.zone) {
-            let saveData = analyzePoint
-            saveData.id = value
-            saveData.time = 0
-            saveData.start = data.start
-            saveData.state = '无越界区'
-            knex('analyze')
-              .insert(saveData)
-              .catch(err => {
-                console.error(err)
-              })
-          }
-          // 对单个车辆进行分析
-          singalCar({
-            id: value,
-            datetime: data.datetime,
-            start: data.start,
-            type: data.type,
-            zone: allZone
-          })
-        } else if (data.type.zone) {
-          // 无越界和限速区域，不进行分析
-          let saveData = analyzePoint
-          saveData.id = value
-          saveData.time = 0
-          saveData.start = data.start
-          saveData.state = '无区域'
-          knex('analyze')
-            .insert(saveData)
-            .catch(err => {
-              console.error(err)
+    // 控制数据库访问频率
+    setTimeout(() => {
+      knex('zone')
+        .select()
+        .where('id', value)
+        .then(result => {
+          if (result[0]) {
+            // 采用高德坐标系，区域坐标不进行转换
+            // 将字符串经纬度转换为数字数组
+            let allZone = getZone(result)
+            // 无越界或限速边界时处理
+            if (!allZone.speed[0] && data.type.speed && data.type.zone) {
+              // 存储到分析数据库
+              let saveData = analyzePoint
+              saveData.id = value
+              saveData.time = 0
+              saveData.start = data.start
+              saveData.state = '无限速区'
+              knex('analyze')
+                .insert(saveData)
+                .catch(err => {
+                  console.error(err)
+                })
+            }
+            if (!allZone.border[0] && data.type.border && data.type.zone) {
+              let saveData = analyzePoint
+              saveData.id = value
+              saveData.time = 0
+              saveData.start = data.start
+              saveData.state = '无越界区'
+              knex('analyze')
+                .insert(saveData)
+                .catch(err => {
+                  console.error(err)
+                })
+            }
+            // 对单个车辆进行分析
+            singalCar({
+              id: value,
+              datetime: data.datetime,
+              start: data.start,
+              type: data.type,
+              zone: allZone
             })
-        }
-      })
-      .catch(err => {
-        console.error(err)
-      })
+          } else if (data.type.zone) {
+            // 无越界和限速区域，不进行分析
+            let saveData = analyzePoint
+            saveData.id = value
+            saveData.time = 0
+            saveData.start = data.start
+            saveData.state = '无区域'
+            knex('analyze')
+              .insert(saveData)
+              .catch(err => {
+                console.error(err)
+              })
+          }
+        })
+        .catch(err => {
+          console.error(err)
+        })
+    }, i * 1000)
   }
   callback()
 }
@@ -222,11 +214,6 @@ const statistics = data => {
             .select()
             .where({ id: value, start: data.start })
             .orderBy('time')
-            // .then(result => {
-            //   let err = null
-            //   if (!result[0]) err = 'noData'
-            //   callback(err, result)
-            // })
             .asCallback((err, result) => {
               if (!result[0]) err = 'noData'
               callback(err, result)
@@ -241,12 +228,6 @@ const statistics = data => {
               else result = getZone(result)
               callback(err, result)
             })
-          // .then(result => {
-          //   let err = null
-          //   if (!result[0]) err = 'noData'
-          //   else result = getZone(result)
-          //   callback(err, result)
-          // })
         },
         estimate: [
           'get_points',

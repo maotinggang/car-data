@@ -1,8 +1,10 @@
 import collection from 'lodash/collection'
+import array from 'lodash/array'
 import { wgs2bd } from '../../../lib/coords'
 import { asyncSelectAllAnalyze } from '../../../lib/maria'
 const state = {
   analyzeTable: [],
+  analyze100Table: [],
   analyzeSpeed: true,
   analyzeBorder: false,
   analyzeZone: false
@@ -13,8 +15,13 @@ const mutations = {
     state.analyzeTable = []
     state.analyzeTable = value
   },
+  ANALYZE_TABLE100_ACTION(state, value) {
+    state.analyze100Table = []
+    state.analyze100Table = value
+  },
   ANALYZE_CLEAR(state) {
     state.analyzeTable = []
+    state.analyze100Table = []
   },
   ANALYZE_SPEED(state, value) {
     state.analyzeSpeed = value
@@ -46,11 +53,18 @@ const actions = {
             result[key].state = '不定位'
           }
         })
+        commit('ANALYZE_TABLE100_ACTION', array.slice(result, 0, 100))
         commit('ANALYZE_TABLE_ACTION', result)
       })
       .catch(err => {
         console.log(err)
       })
+  },
+  analyzeTable100Action({ state, commit }, value) {
+    commit(
+      'ANALYZE_TABLE100_ACTION',
+      array.slice(state.analyzeTable, (value - 1) * 100, value * 100)
+    )
   },
   analyzeSpeed({ commit }, value) {
     commit('ANALYZE_SPEED', value)
