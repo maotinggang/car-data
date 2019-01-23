@@ -21,7 +21,7 @@
 </template>
 <script>
   import Operate from "./operate";
-  import Point from "./piont";
+  import Point from "./point.vue";
   import Results from "./results";
   export default {
     components: {

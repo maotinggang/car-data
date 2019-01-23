@@ -54,6 +54,7 @@
   },
   "dependencies": {
     "async": "^2.6.1",
+    "csv-stringify": "^5.2.0",
     "date-time": "^2.1.0",
     "iview": "^3.2.0",
     "knex": "^0.16.3",

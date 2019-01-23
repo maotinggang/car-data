@@ -1,2 +1,3 @@
 import LoadFile from './loadFile.vue'
-export default LoadFile
+import SaveFileBtn from './saveFileBtn.vue'
+export { LoadFile, SaveFileBtn }

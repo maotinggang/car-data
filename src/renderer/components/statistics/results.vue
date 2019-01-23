@@ -1,6 +1,6 @@
 <template>
   <div class="table">
-    <Table :columns="columns" :height="windowHeight-300" :data="data" size="small" highlight-row></Table>
+    <Table :columns="columns" :height="windowHeight-380" :data="data" size="small" highlight-row></Table>
   </div>
 </template>
 <script>

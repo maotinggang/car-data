@@ -1,5 +1,8 @@
 import collection from 'lodash/collection'
 import insider from 'point-in-polygon'
+import dateTime from 'date-time'
+import math from 'lodash/math'
+import array from 'lodash/array'
 
 /**
  * @description 根据数据库查询到的区域信息进行处理
@@ -91,4 +94,21 @@ const estimateInit = data => {
   return estimate
 }
 
-export { getZone, estimateInit }
+/**
+ * @description 筛选1分钟内最大超速，删除其他点
+ * @param {Object} points
+ */
+const data60sFilter = points => {
+  let newPoints = points
+  collection.forEach(points, value => {
+    let time = new Date(value.time)
+    let last30s = dateTime({ date: new Date(time.getTime() - 30 * 1000) })
+    let next30s = dateTime({ date: new Date(time.getTime() + 30 * 1000) })
+    let ret = array.remove(newPoints, o => {
+      return o.time >= last30s && o.time < next30s && o.alert === '超速'
+    })
+    newPoints.push(math.maxBy(ret, 'speed'))
+  })
+  return newPoints
+}
+export { getZone, estimateInit, data60sFilter }

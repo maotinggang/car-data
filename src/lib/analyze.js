@@ -1,10 +1,12 @@
 import { EventBus } from './event'
+// import math from 'lodash/math'
+// import array from 'lodash/array'
 import collection from 'lodash/collection'
 import dateTime from 'date-time'
 import insider from 'point-in-polygon'
 import { series, auto, each, eachSeries } from 'async'
 import { wgs2gcj } from './coords'
-import { getZone, estimateInit } from './analyzeTools'
+import { getZone, estimateInit, data60sFilter } from './analyzeTools'
 var knex = require('knex')({
   client: 'mysql',
   connection: {
@@ -207,55 +209,70 @@ const pointAnalyze = (data, callback) => {
 const statistics = data => {
   // 获取车辆初步分析数据
   collection.forEach(data.id, value => {
-    auto(
-      {
-        get_points: callback => {
-          knex('analyze')
-            .select()
-            .where({ id: value, start: data.start })
-            .orderBy('time')
-            .asCallback((err, result) => {
-              if (!result[0]) err = 'noData'
-              callback(err, result)
-            })
-        },
-        get_zone: callback => {
-          knex('zone')
-            .select()
-            .where('id', value)
-            .asCallback((err, result) => {
-              if (!result[0]) err = 'noData'
-              else result = getZone(result)
-              callback(err, result)
-            })
-        },
-        estimate: [
-          'get_points',
-          'get_zone',
-          (results, callback) => {
-            each(
-              results.get_points,
-              (value, callback) => {
-                let coord = wgs2gcj(value.lng, value.lat)
-                value.lng = coord[0]
-                value.lat = coord[1]
-                alertAnalyze({ point: value, zones: results.get_zone }, err => {
+    setInterval(() => {
+      auto(
+        {
+          get_points: callback => {
+            knex('analyze')
+              .select()
+              .where({ id: value, start: data.start })
+              .orderBy('time')
+              .asCallback((err, result) => {
+                if (!result[0]) err = 'noData'
+                callback(err, result)
+              })
+          },
+          get_zone: callback => {
+            knex('zone')
+              .select()
+              .where('id', value)
+              .asCallback((err, result) => {
+                if (!result[0]) err = 'noData'
+                else result = getZone(result)
+                callback(err, result)
+              })
+          },
+          estimateSpeed: [
+            'get_points',
+            'get_zone',
+            (results, callback) => {
+              // 查找该点一分钟内最大超速，删除其他点，只对最大超速进行分析
+              let newPoints = data60sFilter(results.get_points)
+              each(
+                newPoints,
+                (value, callback) => {
+                  let coord = wgs2gcj(value.lng, value.lat)
+                  value.lng = coord[0]
+                  value.lat = coord[1]
+                  alertAnalyze(
+                    { point: value, zones: results.get_zone },
+                    err => {
+                      callback(err)
+                    }
+                  )
+                },
+                err => {
                   callback(err)
-                })
-              },
-              err => {
-                callback(err)
-              }
-            )
+                }
+              )
+            }
+          ],
+          estimateBorder: [
+            'get_points',
+            'get_zone',
+            (results, callback) => {
+              // TODO 越界判断
+              callback(results)
+            }
+          ]
+        },
+        err => {
+          if (err && err !== 'noData') {
+            console.error(err)
           }
-        ]
-      },
-      err => {
-        if (err && err !== 'noData') {
-          console.error(err)
         }
-      }
-    )
+      )
+    }, 100)
   })
 }
 
@@ -265,7 +282,7 @@ const statistics = data => {
  */
 const alertAnalyze = (data, callback) => {
   let estimate = estimateInit(data)
-  // 获取前后一分钟数据
+  // 获取前后2分钟数据
   let now = new Date(data.point.time)
   now.setMinutes(now.getMinutes() - 2)
   let start = dateTime({ date: now })
@@ -277,40 +294,67 @@ const alertAnalyze = (data, callback) => {
     .andWhereBetween('time', [start, end])
     .orderBy('time')
     .then(values => {
-      // 超速判断
-      if (data.point.alert === '超速') {
-        let pointsChange = []
-        collection.forEach(values, value => {
-          // 判断前后一分钟是否有超速
-          if (value.speed > data.point.limit) estimate += 10
-
-          // 判断前后一分钟是区域跳变情况
-          let coord = wgs2gcj(value.lng, value.lat)
-          collection.some(data.zones.speed, zone => {
-            if (insider(coord, zone.polygon)) {
-              pointsChange.push(zone.speed)
-              return true
-            }
-          })
-        })
-        // 统计区域跳变
-        let count = 0
-        let nowSpeed = 0
-        collection.forEach(pointsChange, value => {
-          if (nowSpeed !== value) {
-            nowSpeed = value
-            count++
+      let pointsChange = []
+      for (let index = 0; index < values.length; index++) {
+        const value = values[index]
+        // 判断前后2分钟是否有超速
+        if (value.speed > data.point.limit) estimate += 10
+        // TODO 连续2个以上点显示车辆不定位
+        // TODO 无信号时，平均速度
+        // 前后相邻点速度突变
+        if (index > 0) {
+          if (
+            value.speed - values[index - 1] > 15 ||
+            values[index - 1] - value.speed > 15
+          ) {
+            estimate -= 20
+          }
+          if (
+            value.speed - values[index - 1] > 50 ||
+            values[index - 1] - value.speed > 50
+          ) {
+            estimate -= 20
+          }
+        }
+        if (index < values.length - 1) {
+          if (
+            value.speed - values[index + 1] > 15 ||
+            values[index + 1] - value.speed > 15
+          ) {
+            estimate -= 20
+          }
+          if (
+            value.speed - values[index + 1] > 50 ||
+            values[index + 1] - value.speed > 50
+          ) {
+            estimate -= 20
+          }
+        }
+        // 判断前后2分钟是区域跳变情况
+        let coord = wgs2gcj(value.lng, value.lat)
+        collection.some(data.zones.speed, zone => {
+          if (insider(coord, zone.polygon)) {
+            pointsChange.push(zone.speed)
+            return true
           }
         })
-        if (count === 1) {
-          estimate += 10
-        } else if (count === 2) {
-          estimate -= 20
-        } else if (count > 2) {
-          estimate -= 30
-        }
       }
-      // TODO 越界判断
+      // 统计区域跳变
+      let count = 0
+      let nowSpeed = 0
+      collection.forEach(pointsChange, value => {
+        if (nowSpeed !== value) {
+          nowSpeed = value
+          count++
+        }
+      })
+      if (count === 1) {
+        estimate += 10
+      } else if (count === 2) {
+        estimate -= 20
+      } else if (count > 2) {
+        estimate -= 30
+      }
 
       // 更新数据库estimate
       if (estimate > 100) {
@@ -349,7 +393,7 @@ const multiCar = data => {
         EventBus.$emit(
           'statistics-analyze-notice',
           `开始分析车辆数据 </br> 时间:${data.start}`,
-          3
+          0
         )
         callback()
       },
@@ -361,15 +405,17 @@ const multiCar = data => {
       },
       // 分析完成
       callback => {
-        // TODO 完成通知不起作用，异步
-        data.end = dateTime()
-        EventBus.$emit('statistics-analyze-done', data)
-        // EventBus.$emit(
-        //   'statistics-analyze-notice',
-        //   `完成车辆数据分析 </br> 时间:${data.end}`,
-        //   3
-        // )
-        callback()
+        // TODO 完成通知需改善，异步
+        setTimeout(() => {
+          data.end = dateTime()
+          EventBus.$emit(
+            'statistics-analyze-notice',
+            `完成车辆数据分析 </br> 时间:${data.end}`,
+            0
+          )
+          // EventBus.$emit('statistics-analyze-done', data)
+          callback()
+        }, data.id.length * 1500)
       }
     ],
     err => {
