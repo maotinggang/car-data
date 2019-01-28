@@ -20,9 +20,9 @@
   </div>
 </template>
 <script>
-  import Operate from "./operate";
+  import Operate from "./operate.vue";
   import Point from "./point.vue";
-  import Results from "./results";
+  import Results from "./results.vue";
   export default {
     components: {
       Operate,

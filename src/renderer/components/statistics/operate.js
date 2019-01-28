@@ -9,10 +9,10 @@ export default {
     return {
       formItem: {
         // TODO for test
-        id: '渝TT92098',
+        id: '渝A7G795',
         datetime: {
-          start: '2018-01-01T00:00:00Z',
-          end: '2018-02-01T00:00:00Z'
+          start: '2018-01-16T20:17:00Z',
+          end: '2018-01-16T20:20:00Z'
         },
         analyzeId: ''
       },

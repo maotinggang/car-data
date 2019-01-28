@@ -2,7 +2,7 @@ import collection from 'lodash/collection'
 const state = {
   list: [],
   selected: '',
-  checked: ['渝TT92098'], // TODO for test
+  checked: ['渝A7G795'], // TODO for test
   selectList: [],
   windowHeight: window.innerHeight
 }

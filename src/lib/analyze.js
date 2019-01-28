@@ -1,5 +1,5 @@
 import { EventBus } from './event'
-// import math from 'lodash/math'
+import math from 'lodash/math'
 // import array from 'lodash/array'
 import collection from 'lodash/collection'
 import dateTime from 'date-time'
@@ -81,20 +81,21 @@ const singalCar = data => {
               })
             }
             // 判断是否超速
-            if (data.type.speed && data.zone.speed[0]) {
+            if (!ret.alert && data.type.speed && data.zone.speed[0]) {
               // 大于最小限速
               if (value.speed > data.zone.speed[0].speed) {
-                let zoneCount = data.zone.speed.length
-                for (let i = 0; i < zoneCount; i++) {
-                  const speed = data.zone.speed[i]
+                collection.some(data.zone.speed, speedZone => {
                   // 限速区域判断
-                  let over = value.speed - speed.speed
-                  if (over > 0 && insider(coord, speed.polygon)) {
+                  if (
+                    value.speed > speedZone.speed &&
+                    insider(coord, speedZone.polygon)
+                  ) {
                     ret.alert = '超速'
-                    ret.limit = speed.speed
+                    ret.limit = speedZone.speed
                     ret.raw = value
+                    return true
                   }
-                }
+                })
               }
             }
 
@@ -132,6 +133,10 @@ const singalCar = data => {
  * @param {Object} data
  */
 const pointAnalyze = (data, callback) => {
+  // 按照天进行延时控制
+  let start = new Date(data.datetime.start)
+  let end = new Date(data.datetime.end)
+  let processInterval = ((end - start) / 1000 / 60 / 60 / 24) * 10
   // 按照顺序同步分析每一辆车，找出有问题点暂存数据库，等待下一步总体分析
   // 查找设备越界和超速区域，无结果时不进行分析，在分析文件标注
   for (let i = 0; i < data.id.length; i++) {
@@ -197,7 +202,7 @@ const pointAnalyze = (data, callback) => {
         .catch(err => {
           console.error(err)
         })
-    }, i * 1000)
+    }, i * processInterval)
   }
   callback()
 }
@@ -209,7 +214,7 @@ const pointAnalyze = (data, callback) => {
 const statistics = data => {
   // 获取车辆初步分析数据
   collection.forEach(data.id, value => {
-    setInterval(() => {
+    setTimeout(() => {
       auto(
         {
           get_points: callback => {
@@ -232,11 +237,11 @@ const statistics = data => {
                 callback(err, result)
               })
           },
-          estimateSpeed: [
+          estimate_speed: [
             'get_points',
             'get_zone',
             (results, callback) => {
-              // 查找该点一分钟内最大超速，删除其他点，只对最大超速进行分析
+              // FIXME 查找该点一分钟内最大超速，删除其他点，只对最大超速进行分析
               let newPoints = data60sFilter(results.get_points)
               each(
                 newPoints,
@@ -244,7 +249,7 @@ const statistics = data => {
                   let coord = wgs2gcj(value.lng, value.lat)
                   value.lng = coord[0]
                   value.lat = coord[1]
-                  alertAnalyze(
+                  speedAnalyze(
                     { point: value, zones: results.get_zone },
                     err => {
                       callback(err)
@@ -256,15 +261,15 @@ const statistics = data => {
                 }
               )
             }
-          ],
-          estimateBorder: [
-            'get_points',
-            'get_zone',
-            (results, callback) => {
-              // TODO 越界判断
-              callback(results)
-            }
           ]
+          // estimate_border: [
+          //   'get_points',
+          //   'get_zone',
+          //   (results, callback) => {
+          //     // TODO 越界判断
+          //     callback(results)
+          //   }
+          // ]
         },
         err => {
           if (err && err !== 'noData') {
@@ -280,13 +285,15 @@ const statistics = data => {
  * @description 判断告警正确性
  * @param {Object} data
  */
-const alertAnalyze = (data, callback) => {
+const speedAnalyze = (data, callback) => {
   let estimate = estimateInit(data)
-  // 获取前后2分钟数据
+  console.log('estimateInit:' + estimate)
+
+  // 获取前后1分钟数据
   let now = new Date(data.point.time)
-  now.setMinutes(now.getMinutes() - 2)
+  now.setMinutes(now.getMinutes() - 1)
   let start = dateTime({ date: now })
-  now.setMinutes(now.getMinutes() + 4)
+  now.setMinutes(now.getMinutes() + 2)
   let end = dateTime({ date: now })
   knex('fengjie_1_3')
     .select()
@@ -294,43 +301,47 @@ const alertAnalyze = (data, callback) => {
     .andWhereBetween('time', [start, end])
     .orderBy('time')
     .then(values => {
+      console.log(values)
+
+      // FIXME 2分钟平均速度距超速2km/h判定,去掉0速度
+      let mean = math.meanBy(collection.filter(values, 'speed'), 'speed')
+      if (mean - data.point.limit > -2) estimate += 30
+      console.log('meanSpeed:' + mean)
+      console.log('mean:' + estimate)
+
       let pointsChange = []
       for (let index = 0; index < values.length; index++) {
         const value = values[index]
-        // 判断前后2分钟是否有超速
-        if (value.speed > data.point.limit) estimate += 10
-        // TODO 连续2个以上点显示车辆不定位
-        // TODO 无信号时，平均速度
-        // 前后相邻点速度突变
+        // 判断前后1分钟是否有多次超速
+        if (value.speed > data.point.limit) {
+          estimate += 10
+          console.log('多次超速:' + estimate)
+        }
         if (index > 0) {
-          if (
-            value.speed - values[index - 1] > 15 ||
-            values[index - 1] - value.speed > 15
-          ) {
-            estimate -= 20
+          // FIXME 相邻点速度突变20km/h
+          if (value.speed - values[index - 1].speed > 30) {
+            estimate -= 10
+            console.log('突变10:' + estimate)
           }
-          if (
-            value.speed - values[index - 1] > 50 ||
-            values[index - 1] - value.speed > 50
-          ) {
+          // 相邻点速度突变60km/h
+          if (value.speed - values[index - 1].speed > 60) {
             estimate -= 20
+            console.log('突变60:' + estimate)
           }
-        }
-        if (index < values.length - 1) {
+          // FIXME 相邻2个点显示车辆不定位且超速
           if (
-            value.speed - values[index + 1] > 15 ||
-            values[index + 1] - value.speed > 15
+            (value.state === 'False' &&
+              values[index - 1].state === 'False' &&
+              value.speed > data.point.limit) ||
+            (value.stano < 4 &&
+              values[index - 1].stano < 4 &&
+              value.speed > data.point.limit)
           ) {
             estimate -= 20
-          }
-          if (
-            value.speed - values[index + 1] > 50 ||
-            values[index + 1] - value.speed > 50
-          ) {
-            estimate -= 20
+            console.log('不定位:' + estimate)
           }
         }
-        // 判断前后2分钟是区域跳变情况
+        // 判断前后1分钟是区域跳变情况
         let coord = wgs2gcj(value.lng, value.lat)
         collection.some(data.zones.speed, zone => {
           if (insider(coord, zone.polygon)) {
@@ -349,12 +360,23 @@ const alertAnalyze = (data, callback) => {
         }
       })
       if (count === 1) {
-        estimate += 10
+        // 无区域跳变
+        // FIXME 2分钟连续漂移在低速区域控制
+        if (
+          data.point.limit - mean > -5 &&
+          data.point.limit - mean < 5 &&
+          data.point.limit < 70 &&
+          data.point.limit > 40
+        ) {
+          estimate -= 20
+        } else estimate += 10
+        console.log('连续漂移:' + estimate)
       } else if (count === 2) {
         estimate -= 20
       } else if (count > 2) {
         estimate -= 30
       }
+      console.log('estimate:' + estimate)
 
       // 更新数据库estimate
       if (estimate > 100) {
@@ -393,7 +415,7 @@ const multiCar = data => {
         EventBus.$emit(
           'statistics-analyze-notice',
           `开始分析车辆数据 </br> 时间:${data.start}`,
-          0
+          1
         )
         callback()
       },
@@ -411,7 +433,7 @@ const multiCar = data => {
           EventBus.$emit(
             'statistics-analyze-notice',
             `完成车辆数据分析 </br> 时间:${data.end}`,
-            0
+            1
           )
           // EventBus.$emit('statistics-analyze-done', data)
           callback()

@@ -55,29 +55,44 @@ const estimateInit = data => {
   // 定位
   if (point.state === 'True') estimate += 30
   // 卫星数
-  if (point.stano > 20) estimate += 15
-  else if (point.stano > 10) estimate += 10
-  else if (point.stano > 4) estimate += 5
-  else if (point.stano === 0) estimate -= 10
-  else estimate -= 15
-  // 速度
-  if (point.speed > 0) estimate += 5
-  // 方向
-  if (point.direction !== 0) estimate += 5
+  if (point.stano > 20) estimate += 30
+  else if (point.stano > 10) estimate += 20
+  else if (point.stano > 4) estimate += 10
   if (point.alert === '超速') {
     // 超速大小
     let over = point.speed - point.limit
-    if (over > 60) estimate -= 30
-    else if (over > 40) estimate -= 20
-    else if (over > 20) estimate += 20
-    else if (over > 10) estimate += 10
-    else estimate += 5
+    if (over > 50) estimate -= 40
+    else if (over > 40) estimate -= 30
+    else if (over > 30) estimate -= 20
+    else if (over > 20) estimate += 5
+    else if (over > 10) estimate += 20
+    else estimate += 10
+    // 超速值大于大限速
+    // 2个限速区
+    if (zones.speed.length > 1) {
+      over = point.speed - zones.speed[1].speed
+      if (over > 20) {
+        estimate -= 10
+      } else if (over > 0) {
+        estimate += 30
+      }
+    }
+    // 3个限速区
+    if (zones.speed.length > 2) {
+      over = point.speed - zones.speed[2].speed
+      if (over > 20) {
+        estimate -= 10
+      } else if (over > 0) {
+        estimate += 30
+      }
+    }
+
     collection.forEach(zones.speed, value => {
       if (value.speed > point.limit) {
-        // 限速区域重叠，同时出现在两个区域,速度大于大限速+10，否则-10
+        // 限速区域重叠，同时出现在两个区域,速度大于大限速+20，否则-10
         if (insider([point.lng, point.lat], value.polygon)) {
           if (point.speed > value.speed) {
-            estimate += 10
+            estimate += 20
           } else {
             estimate -= 10
           }
@@ -86,7 +101,7 @@ const estimateInit = data => {
         over = point.speed - value.speed
         if (over > 10) estimate += 20
         else if (over > 0) estimate += 10
-        else estimate -= 20
+        else estimate -= 10
       }
       // TODO 点漂移到高速区，漏警
     })
@@ -99,16 +114,26 @@ const estimateInit = data => {
  * @param {Object} points
  */
 const data60sFilter = points => {
-  let newPoints = points
-  collection.forEach(points, value => {
-    let time = new Date(value.time)
-    let last30s = dateTime({ date: new Date(time.getTime() - 30 * 1000) })
-    let next30s = dateTime({ date: new Date(time.getTime() + 30 * 1000) })
-    let ret = array.remove(newPoints, o => {
-      return o.time >= last30s && o.time < next30s && o.alert === '超速'
+  let newPoints = []
+  let pointsLength = points.length
+  for (let index = 0; index < pointsLength; index++) {
+    const value = points[0]
+    if (!value) break
+    let pointTime = new Date(value.time)
+    let now = dateTime({ date: pointTime })
+    let next60s = dateTime({
+      date: new Date(pointTime.getTime() + 60 * 1000)
+    })
+    let ret = array.remove(points, o => {
+      return (
+        o.time >= now &&
+        o.time < next60s &&
+        o.alert === '超速' &&
+        o.id === value.id
+      )
     })
     newPoints.push(math.maxBy(ret, 'speed'))
-  })
+  }
   return newPoints
 }
 export { getZone, estimateInit, data60sFilter }
