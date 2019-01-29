@@ -287,7 +287,7 @@ const statistics = data => {
  */
 const speedAnalyze = (data, callback) => {
   let estimate = estimateInit(data)
-  console.log('estimateInit:' + estimate)
+  // console.log('estimateInit:' + estimate)
 
   // 获取前后1分钟数据
   let now = new Date(data.point.time)
@@ -301,13 +301,18 @@ const speedAnalyze = (data, callback) => {
     .andWhereBetween('time', [start, end])
     .orderBy('time')
     .then(values => {
-      console.log(values)
+      // console.log(values)
 
       // FIXME 2分钟平均速度距超速2km/h判定,去掉0速度
-      let mean = math.meanBy(collection.filter(values, 'speed'), 'speed')
+      let mean = math.meanBy(
+        collection.filter(values, o => {
+          return o.speed > 0 && o.speed < 160
+        }),
+        'speed'
+      )
       if (mean - data.point.limit > -2) estimate += 30
-      console.log('meanSpeed:' + mean)
-      console.log('mean:' + estimate)
+      // console.log('meanSpeed:' + mean)
+      // console.log('mean:' + estimate)
 
       let pointsChange = []
       for (let index = 0; index < values.length; index++) {
@@ -315,18 +320,23 @@ const speedAnalyze = (data, callback) => {
         // 判断前后1分钟是否有多次超速
         if (value.speed > data.point.limit) {
           estimate += 10
-          console.log('多次超速:' + estimate)
+          // console.log('多次超速:' + estimate)
         }
         if (index > 0) {
-          // FIXME 相邻点速度突变20km/h
+          // FIXME 相邻点速度突变30km/h
           if (value.speed - values[index - 1].speed > 30) {
             estimate -= 10
-            console.log('突变10:' + estimate)
+            // console.log('突变10:' + estimate)
           }
           // 相邻点速度突变60km/h
           if (value.speed - values[index - 1].speed > 60) {
             estimate -= 20
-            console.log('突变60:' + estimate)
+            // console.log('突变60:' + estimate)
+          }
+          // 相邻点速度突变90km/h
+          if (value.speed - values[index - 1].speed > 90) {
+            estimate -= 60
+            // console.log('突变60:' + estimate)
           }
           // FIXME 相邻2个点显示车辆不定位且超速
           if (
@@ -337,8 +347,8 @@ const speedAnalyze = (data, callback) => {
               values[index - 1].stano < 4 &&
               value.speed > data.point.limit)
           ) {
-            estimate -= 20
-            console.log('不定位:' + estimate)
+            estimate -= 30
+            // console.log('不定位:' + estimate)
           }
         }
         // 判断前后1分钟是区域跳变情况
@@ -370,13 +380,13 @@ const speedAnalyze = (data, callback) => {
         ) {
           estimate -= 20
         } else estimate += 10
-        console.log('连续漂移:' + estimate)
+        // console.log('连续漂移:' + estimate)
       } else if (count === 2) {
         estimate -= 20
       } else if (count > 2) {
         estimate -= 30
       }
-      console.log('estimate:' + estimate)
+      // console.log('estimate:' + estimate)
 
       // 更新数据库estimate
       if (estimate > 100) {

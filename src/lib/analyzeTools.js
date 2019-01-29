@@ -61,12 +61,14 @@ const estimateInit = data => {
   if (point.alert === '超速') {
     // 超速大小
     let over = point.speed - point.limit
-    if (over > 50) estimate -= 40
-    else if (over > 40) estimate -= 30
-    else if (over > 30) estimate -= 20
-    else if (over > 20) estimate += 5
+    if (over > 100) estimate -= 200
+    else if (over > 60) estimate -= 90
+    else if (over > 50) estimate -= 60
+    else if (over > 40) estimate -= 40
+    else if (over > 30) estimate -= 30
+    else if (over > 20) estimate += 10
     else if (over > 10) estimate += 20
-    else estimate += 10
+    else estimate += 5
     // 超速值大于大限速
     // 2个限速区
     if (zones.speed.length > 1) {
@@ -97,7 +99,7 @@ const estimateInit = data => {
             estimate -= 10
           }
         }
-        // 高速区点漂移到低速区
+        // 高速区点可能漂移到低速区
         over = point.speed - value.speed
         if (over > 10) estimate += 20
         else if (over > 0) estimate += 10
@@ -127,7 +129,7 @@ const data60sFilter = points => {
     let ret = array.remove(points, o => {
       return (
         o.time >= now &&
-        o.time < next60s &&
+        o.time <= next60s &&
         o.alert === '超速' &&
         o.id === value.id
       )
