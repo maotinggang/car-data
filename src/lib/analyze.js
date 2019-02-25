@@ -54,7 +54,7 @@ const singalCar = data => {
     if (index === count - 1) {
       end = endMill
     }
-    knex('fengjie_1_3')
+    knex('sanfen')
       .select()
       .where({ id: data.id })
       .andWhereBetween('time', [
@@ -295,7 +295,7 @@ const speedAnalyze = (data, callback) => {
   let start = dateTime({ date: now })
   now.setMinutes(now.getMinutes() + 2)
   let end = dateTime({ date: now })
-  knex('fengjie_1_3')
+  knex('sanfen')
     .select()
     .where({ id: data.point.id })
     .andWhereBetween('time', [start, end])

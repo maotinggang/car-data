@@ -53,11 +53,11 @@ async function asyncSelectCar(data) {
   let conn
   let sql = ''
   if (data.datetime) {
-    sql = `SELECT * FROM fengjie_1_3 WHERE id='${data.id}' AND time >= '${
+    sql = `SELECT * FROM sanfen WHERE id='${data.id}' AND time >= '${
       data.datetime.start
     }' AND time < '${data.datetime.end}'`
   } else {
-    sql = `SELECT * FROM fengjie_1_3 WHERE id='${data.id}'`
+    sql = `SELECT * FROM sanfen WHERE id='${data.id}'`
   }
   try {
     conn = await pool.getConnection()
